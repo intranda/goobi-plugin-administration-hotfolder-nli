@@ -27,14 +27,14 @@
 						<div class="box-content">
 
 							<h:panelGroup
-								rendered="#{!LoginForm.hasRole('Plugin_administration_sample')}">
+								rendered="#{!LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
 								<h:outputText
 									styleClass="alert alert-danger alert-dismissable margin-bottom-10 margin-top-10"
-									value="#{msgs.plugin_administration_missingPermission} Plugin_administration_sample"></h:outputText>
+									value="#{msgs.plugin_administration_missingPermission} Plugin_administration_hotfolder_nli"></h:outputText>
 							</h:panelGroup>
 
 							<h:panelGroup id="actionform" styleClass="col-sm-12"
-								rendered="#{LoginForm.hasRole('Plugin_administration_sample')}">
+								rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
 								<div class="row">
 									<h:form>
 										hello adminstration plugin: #{AdministrationForm.administrationPlugin.value}
