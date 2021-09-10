@@ -6,6 +6,7 @@
 	<!-- Use this task to let ant copy the compiled jar files to the target folders for development  -->
 	<target name="devbuild">
 		<exec executable="mvn">
+			<arg value="clean"/>
 			<arg value="package"/>
 		</exec>
 		<copy file="module-main/target/plugin_intranda_administration_${name}.jar" todir="/opt/digiverso/goobi/plugins/administration/" overwrite="true"/>
