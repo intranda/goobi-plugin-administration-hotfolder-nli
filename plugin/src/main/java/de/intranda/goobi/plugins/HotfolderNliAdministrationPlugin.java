@@ -12,10 +12,11 @@ import net.xeoh.plugins.base.annotations.PluginImplementation;
 @Log4j2
 public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
-    private static String title = "intranda_administration_hotfolder_nli";
+    @Getter
+    private String title = "intranda_administration_hotfolder_nli";
 
     @Getter
-    private static String value;
+    private String value;
 
     @Override
     public PluginType getType() {
@@ -33,10 +34,5 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     public HotfolderNliAdministrationPlugin() {
         log.info("Sample admnistration plugin started");
         value = ConfigPlugins.getPluginConfig(title).getString("value", "default value");
-    }
-
-    @Override
-    public String getTitle() {
-        return title;
     }
 }

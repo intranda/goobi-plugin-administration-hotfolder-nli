@@ -36,7 +36,8 @@
                     <target>1.8</target>
                     <!-- TODO comment this in, when quartz job runs without dependencies of other classes -->
                     <includes>
-                    <include>**/HotfolderNLIQuartzJob.java</include>
+                        <include>**/HotfolderNLIQuartzJob.java</include>
+                        <include>**/model/*.java</include>
                     </includes>
                 </configuration>
             </plugin>
