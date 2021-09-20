@@ -37,7 +37,18 @@
 								rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
 								<div class="row">
 									<h:form>
-										hello adminstration plugin: #{AdministrationForm.administrationPlugin.value}
+                                        Paused: #{AdministrationForm.administrationPlugin.paused} <br />
+										Running: #{AdministrationForm.administrationPlugin.running} <br/>
+                                        <ui:fragment rendered="#{AdministrationForm.administrationPlugin.running}">
+                                            Started running at: 
+                                            <h:outputText value="#{AdministrationForm.administrationPlugin.startedRunningAt}">
+                                                <f:convertDateTime dateStyle="full" pattern="yyyy.MM.dd 'at' HH:mm:ss z"/>
+                                            </h:outputText>
+                                            <br />
+                                            Running for: #{AdministrationForm.administrationPlugin.runningSince}
+                                        </ui:fragment>
+                                        
+                                        
 									</h:form>
 								</div>
 							</h:panelGroup>

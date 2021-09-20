@@ -43,6 +43,12 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
         if (Files.exists(lockFile)) {
             log.info("NLI hotfolder is already running - not running a second time in parallel");
+            return;
+        }
+        Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
+        if (Files.exists(pauseFile)) {
+            log.info("NLI hotfolder is already paused - not running");
+            return;
         }
         try {
             Files.createFile(lockFile);
