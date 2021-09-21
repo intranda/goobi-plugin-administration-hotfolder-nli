@@ -12,6 +12,7 @@ import java.util.List;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 
 import org.apache.commons.configuration.XMLConfiguration;
 import org.quartz.Job;
@@ -29,6 +30,7 @@ import de.intranda.goobi.plugins.model.HotfolderFolder;
 import de.sub.goobi.config.ConfigPlugins;
 import lombok.extern.log4j.Log4j2;
 
+@WebListener
 @Log4j2
 public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
     private static String title = "intranda_administration_hotfolder_nli";
@@ -81,15 +83,17 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
         List<HotfolderFolder> stableBarcodeFolders = new ArrayList<>();
         try (DirectoryStream<Path> projectsDirStream = Files.newDirectoryStream(hotfolderPath)) {
             for (Path projectPath : projectsDirStream) {
-                try (DirectoryStream<Path> templatesDirStream = Files.newDirectoryStream(projectPath)) {
-                    for (Path templatePath : templatesDirStream) {
-                        try (DirectoryStream<Path> barcodeDirStream = Files.newDirectoryStream(templatePath)) {
-                            for (Path barcodePath : barcodeDirStream) {
-                                Instant lastModified = Files.getLastModifiedTime(barcodePath).toInstant();
-                                Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(30));
-                                if (lastModified.isBefore(thirtyMinutesAgo)) {
-                                    stableBarcodeFolders.add(new HotfolderFolder(projectPath.getFileName().toString(),
-                                            templatePath.getFileName().toString(), barcodePath));
+                if (Files.isDirectory(projectPath)) {
+                    try (DirectoryStream<Path> templatesDirStream = Files.newDirectoryStream(projectPath)) {
+                        for (Path templatePath : templatesDirStream) {
+                            try (DirectoryStream<Path> barcodeDirStream = Files.newDirectoryStream(templatePath)) {
+                                for (Path barcodePath : barcodeDirStream) {
+                                    Instant lastModified = Files.getLastModifiedTime(barcodePath).toInstant();
+                                    Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(30));
+                                    if (lastModified.isBefore(thirtyMinutesAgo)) {
+                                        stableBarcodeFolders.add(new HotfolderFolder(projectPath.getFileName().toString(),
+                                                templatePath.getFileName().toString(), barcodePath));
+                                    }
                                 }
                             }
                         }
@@ -111,7 +115,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
      */
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        log.info("Starting 'Googlebooks Harvester' scheduler");
+        log.info("Starting 'NLI hotfolder' scheduler");
         try {
             // get default scheduler
             SchedulerFactory schedFact = new StdSchedulerFactory();
