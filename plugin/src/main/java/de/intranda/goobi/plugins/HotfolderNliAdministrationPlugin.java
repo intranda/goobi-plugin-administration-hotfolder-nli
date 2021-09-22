@@ -39,7 +39,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
      * Constructor
      */
     public HotfolderNliAdministrationPlugin() {
-        log.info("Sample admnistration plugin started");
+        log.info("NLI hotfolder admnistration plugin started");
         hotfolderPath = Paths.get(ConfigPlugins.getPluginConfig(title).getString("hotfolderPath"));
     }
 
@@ -63,5 +63,19 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         Duration runningTime = Duration.between(Files.getLastModifiedTime(lockFile).toInstant(), Instant.now());
         long s = runningTime.getSeconds();
         return String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+    }
+
+    public void pauseWork() throws IOException {
+        Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
+        if (!Files.exists(pauseFile)) {
+            Files.createFile(pauseFile);
+        }
+    }
+
+    public void resumeWork() throws IOException {
+        Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
+        if (Files.exists(pauseFile)) {
+            Files.delete(pauseFile);
+        }
     }
 }

@@ -49,7 +49,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
         }
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
         if (Files.exists(pauseFile)) {
-            log.info("NLI hotfolder is already paused - not running");
+            log.info("NLI hotfolder is paused - not running");
             return;
         }
         try {
