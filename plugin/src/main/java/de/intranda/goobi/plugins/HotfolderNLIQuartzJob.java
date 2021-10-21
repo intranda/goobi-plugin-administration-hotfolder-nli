@@ -83,6 +83,12 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
     public void execute(JobExecutionContext jec) throws JobExecutionException {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
+        
+        if (!Files.exists(hotfolderPath)) {
+            log.info("NLI hotfolder is not present: "+ hotfolderPath);
+            return;
+        }
+        
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
         if (Files.exists(lockFile)) {
             log.info("NLI hotfolder is already running - not running a second time in parallel");
@@ -159,7 +165,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             System.out.println("NLI hotfolder - importing: " + importFile);
 
             if (excelImport == null) {
-                excelImport = new NLIExcelImport();
+                excelImport = new NLIExcelImport(hff);
             }
 
             List<Record> records = excelImport.generateRecordsFromFile(importFile, processFolders);

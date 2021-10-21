@@ -3,9 +3,9 @@ package de.intranda.goobi.plugins.excel.nli;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Data;
+//import lombok.Data;
 
-@Data
+//@Data
 public class GroupMappingObject {
 
 
@@ -15,3 +15,4 @@ public class GroupMappingObject {
 
     private String docType;
 }
+

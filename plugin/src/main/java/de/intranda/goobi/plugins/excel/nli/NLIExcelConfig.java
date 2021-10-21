@@ -34,20 +34,63 @@ public class NLIExcelConfig {
     private boolean moveImage;
     private List<String> mandatoryColumns = new ArrayList<>();
 
-//    public List<MetadataMappingObject> getMetadataList() {
-//        return metadataList;
-//    }
-//
-//    public String getIdentifierHeaderName() {
-//        return identifierHeaderName;
-//    }
+    public String getPublicationType() {
+        return publicationType;
+     }
+    
+    public List<MetadataMappingObject> getMetadataList() {
+        return metadataList;
+    }
+
+    public String getIdentifierHeaderName() {
+        return identifierHeaderName;
+    }
+    
+    public boolean isUseOpac() {
+        return useOpac;
+     }
+
+     public int getRowHeader() {
+         return rowHeader;
+     }
+
+     public int getRowDataStart() {
+       return rowDataStart;
+     }
+
+     public int getRowDataEnd() {
+         return rowDataEnd;
+     }
+
+     public String getOpacHeader() {
+         return opacHeader;
+     }
+
+     public boolean isMoveImage() {
+         return moveImage;
+     }
+
+     public String getSearchField() {
+         return searchField;
+     }
+
+     public String getOpacName() {
+         return opacName;
+     }
+
+     public String getCollection() {
+         return collection;
+     }
+
+     public String getProcessHeaderName() {
+         return processHeaderName;
+     }
 
     /**
      * loads the &lt;config&gt; block from xml file
      * 
      * @param xmlConfig
      */
-
     public NLIExcelConfig(SubnodeConfiguration xmlConfig) {
 
         publicationType = xmlConfig.getString("/publicationType", "Monograph");
@@ -105,6 +148,9 @@ public class NLIExcelConfig {
         mmo.setSearchField(md.getString("@opacSearchField", null));
         return mmo;
     }
+
+
+
 
     //    private PersonMappingObject getPersons(HierarchicalConfiguration md) {
     //        String rulesetName = md.getString("@ugh");

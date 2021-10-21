@@ -21,3 +21,4 @@ public class PersonMappingObject {
 
     private String docType;
 }
+

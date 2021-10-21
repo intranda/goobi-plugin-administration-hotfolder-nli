@@ -12,6 +12,7 @@ import java.util.List;
 
 import lombok.Getter;
 
+
 public class HotfolderFolder {
 
     @Getter
@@ -41,7 +42,6 @@ public class HotfolderFolder {
                 }
             }
         }
-
     }
 
     public List<Path> getCurrentProcessFolders() throws IOException {

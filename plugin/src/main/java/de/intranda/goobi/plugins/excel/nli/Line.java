@@ -3,9 +3,9 @@ package de.intranda.goobi.plugins.excel.nli;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Data;
+//import lombok.Data;
 
-public @Data class Line {
+public class Line {
 
     private int id = 0;
     private String orderAsNumber = "";

@@ -1,9 +1,10 @@
 package de.intranda.goobi.plugins.excel.nli;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+//import lombok.AllArgsConstructor;
+//import lombok.Getter;
 
-public @Getter  @AllArgsConstructor class StringPair {
+// @Getter  @AllArgsConstructor 
+ public class StringPair {
 
     String classification;
     String label;
@@ -18,6 +19,10 @@ public @Getter  @AllArgsConstructor class StringPair {
             return classification.equals((String) obj);
         }
         return false;
+    }
+
+    private String getClassification() {
+        return classification;
     }
 
 }

@@ -42,6 +42,7 @@ import org.goobi.production.plugin.interfaces.IOpacPlugin;
 import de.intranda.goobi.plugins.excel.nli.MetadataMappingObject;
 import de.intranda.goobi.plugins.excel.nli.NLIExcelConfig;
 import de.intranda.goobi.plugins.model.HotfolderFolder;
+import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.StorageProvider;
@@ -52,8 +53,8 @@ import de.sub.goobi.persistence.managers.ProcessManager;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.extern.log4j.Log4j;
+//import lombok.EqualsAndHashCode;
+//import lombok.extern.log4j.Log4j;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
@@ -67,7 +68,7 @@ import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.exceptions.WriteException;
 import ugh.fileformats.mets.MetsMods;
 
-@Log4j
+//@Log4j
 @Data
 @PluginImplementation
 public class NLIExcelImport {
@@ -81,25 +82,32 @@ public class NLIExcelImport {
     private String volumeNumber;
     private String processTitle;
 
-    @EqualsAndHashCode.Exclude
+    //    @EqualsAndHashCode.Exclude
     private boolean replaceExisting = false;
-    @EqualsAndHashCode.Exclude
+    //    @EqualsAndHashCode.Exclude
     private boolean moveFiles = false;
 
-    private String title = "intranda_import_excel_nli";
+    private static String title = "intranda_administration_hotfolder_nli";
 
     //    private Map<String, Integer> headerOrder;
 
     private List<ImportType> importTypes;
     private String workflowTitle;
 
-    @EqualsAndHashCode.Exclude
+    //    @EqualsAndHashCode.Exclude
     private NLIExcelConfig config;
     private Process template;
 
-    public NLIExcelImport() {
+    public NLIExcelImport(HotfolderFolder hff) {
+
+        importFolder = ConfigurationHelper.getInstance().getTemporaryFolder();
+
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.FILE);
+
+        if (hff != null) {
+            this.workflowTitle = hff.getTemplateName();
+        }
     }
 
     //    @Override
@@ -178,7 +186,7 @@ public class NLIExcelImport {
 
                     ds = myRdf.getDigitalDocument().getLogicalDocStruct();
                 } catch (Exception e) {
-                    log.error(e);
+                    //                    log.error(e);
                 }
             } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 return null;
@@ -281,18 +289,20 @@ public class NLIExcelImport {
                         if (!validRequest) {
                             if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
                                 Helper.setFehlerMeldung("Cannot request catalogue, no identifier column defined");
-                                log.error("Cannot request catalogue, no identifier column defined");
+                                //                                log.error("Cannot request catalogue, no identifier column defined");
                                 return Collections.emptyList();
                             }
 
                             Integer columnNumber = headerOrder.get(config.getIdentifierHeaderName());
-                            if (columnNumber == null) {
-                                Helper.setFehlerMeldung("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
-                                        + "' not found in excel file.");
-                                log.error("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
-                                        + "' not found in excel file.");
-                                return Collections.emptyList();
-                            }
+
+                            //                            if (columnNumber == null) {
+                            //                                Helper.setFehlerMeldung("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
+                            //                                        + "' not found in excel file.");
+                            //                                log.error("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
+                            //                                        + "' not found in excel file.");
+                            //                                return Collections.emptyList();
+                            //                            }
+
                             String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
                             if (StringUtils.isBlank(catalogueIdentifier)) {
                                 continue;
@@ -312,7 +322,7 @@ public class NLIExcelImport {
                         }
 
                     } catch (Exception e) {
-                        log.error(e);
+                        //                        log.error(e);
                         io.setErrorMessage(e.getMessage());
                         io.setImportReturnValue(ImportReturnValue.NoData);
                         continue;
@@ -370,20 +380,24 @@ public class NLIExcelImport {
                                 logical.addMetadata(md);
                             }
                         } catch (MetadataTypeNotAllowedException e) {
-                            log.info(e);
+                            //                            log.info(e);
                             // Metadata is not known or not allowed
                         }
                         // create a default title
                         if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
-                            fileName = getImportFolder() + File.separator + value + ".xml";
+                            fileName = importFolder + File.separator + value + ".xml";
                             io.setProcessTitle(value);
                             io.setMetsFilename(fileName);
                         }
                     }
 
-                    String processName = hff.getProjectFolder().getFileName() + "_" + record.getId();
-                    fileName = nameProcess(processName, io);
+                    //images folder:
 
+                    String processName = hff.getProjectFolder().getFileName() + "_" + record.getId();
+                    //                    String processImagesFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
+                    //                    importFolder = Paths.get(hff.getProjectFolder().toString(), processImagesFolder).toString();
+
+                    fileName = nameProcess(processName, io);
                     if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
                         Processproperty p = new Processproperty();
                         p.setTitel(mmo.getPropertyName());
@@ -406,7 +420,7 @@ public class NLIExcelImport {
                             existingProcess.writeMetadataFile(ff);
                             dataReplaced = true;
                         } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
-                            log.error(e);
+                            //                            log.error(e);
                         }
 
                         Path sourceRootFolder = Paths.get(record.getData());
@@ -437,8 +451,11 @@ public class NLIExcelImport {
         if (Files.exists(imageSourceFolder) && Files.isDirectory(imageSourceFolder)) {
 
             // folder name
-            String foldername = fileName.replace(".xml", "");
+            //            String folderCopyName = Paths.get(fileName).getFileName().toString().replace(".xml", "");
+            //            String foldername = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), folderCopyName).toString();
+            // folder name
 
+            String foldername = fileName.replace(".xml", "");
             String folderNameRule = ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
 
@@ -451,7 +468,7 @@ public class NLIExcelImport {
                     StorageProvider.getInstance().copyDirectory(imageSourceFolder, path);
                 }
             } catch (IOException e) {
-                log.error(e);
+                //                log.error(e);
             }
 
         }
@@ -460,7 +477,7 @@ public class NLIExcelImport {
     private String nameProcess(String processTitle, ImportObject io) {
 
         // set new process title
-        String fileName = getImportFolder() + File.separator + processTitle + ".xml";
+        String fileName = importFolder + File.separator + processTitle + ".xml";
         io.setProcessTitle(processTitle);
         io.setMetsFilename(fileName);
         return fileName;
@@ -484,14 +501,14 @@ public class NLIExcelImport {
                         try {
                             FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getImagesDirectory()).toFile());
                         } catch (IOException | InterruptedException | SwapException | DAOException e) {
-                            log.error(e);
+                            //                            log.error(e);
                         }
                     } else {
                         try {
                             FileUtils.copyFile(currentData.toFile(),
                                     Paths.get(existingProcess.getImagesDirectory(), currentData.getFileName().toString()).toFile());
                         } catch (IOException | InterruptedException | SwapException | DAOException e) {
-                            log.error(e);
+                            //                            log.error(e);
                         }
                     }
                 }
@@ -505,13 +522,13 @@ public class NLIExcelImport {
                         try {
                             copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
                         } catch (IOException | SwapException | DAOException | InterruptedException e) {
-                            log.error(e);
+                            //                            log.error(e);
                         }
                     } else {
                         try {
                             FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
                         } catch (IOException | SwapException | DAOException | InterruptedException e) {
-                            log.error(e);
+                            //                            log.error(e);
                         }
                     }
                 }
@@ -535,7 +552,7 @@ public class NLIExcelImport {
     //    }
 
     //    @Override
-    public List<Record> generateRecordsFromFile(File file, List<Path> processFolders) {
+    public List<Record> generateRecordsFromFile(File file, List<Path> processFolders) throws IOException {
 
         config = null;
         List<Record> recordList = new ArrayList<>();
@@ -585,14 +602,15 @@ public class NLIExcelImport {
                 rowCounter = addRowProcess(recordList, idColumn, headerOrder, rowIterator, rowCounter);
             }
 
-        } catch (Exception e) {
-            log.error(e);
+        } catch (IOException e) {
+//          log.error(e);
+            throw e;
         } finally {
             if (fileInputStream != null) {
                 try {
                     fileInputStream.close();
                 } catch (IOException e) {
-                    log.error(e);
+                    //                    log.error(e);
                 }
             }
         }
@@ -681,15 +699,17 @@ public class NLIExcelImport {
 
     private NLIExcelConfig loadConfig(String workflowTitle) {
 
-        //TODO: this is for testing only
-        XMLConfiguration xmlConfig = new XMLConfiguration();
-        xmlConfig.setDelimiterParsingDisabled(true);
-        try {
-            xmlConfig.load("/opt/digiverso/goobi/config/plugin_intranda_import_excel_nli.xml");
-        } catch (ConfigurationException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
+        //        //TODO: this is for testing only
+        //        XMLConfiguration xmlConfig = new XMLConfiguration();
+        //        xmlConfig.setDelimiterParsingDisabled(true);
+        //        try {
+        //            xmlConfig.load("/opt/digiverso/goobi/config/plugin_intranda_administration_hotfolder_nli.xml");
+        //        } catch (ConfigurationException e1) {
+        //            // TODO Auto-generated catch block
+        //            e1.printStackTrace();
+        //        }
+
+        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 
         //        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 
