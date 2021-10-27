@@ -1,10 +1,9 @@
-package de.intranda.goobi.plugins.excel.nli;
+package de.intranda.goobi.plugins.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import lombok.Data;
-
 
 @Data
 public class GroupMappingObject {

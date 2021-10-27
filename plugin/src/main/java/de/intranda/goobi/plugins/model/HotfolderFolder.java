@@ -12,6 +12,7 @@ import java.util.List;
 
 import lombok.Getter;
 
+
 public class HotfolderFolder {
 
     @Getter
@@ -20,6 +21,8 @@ public class HotfolderFolder {
     @Getter
     private String templateName;
 
+    private Integer minutesInactivity = 1;
+    
     private List<Path> lstProcessFolders;
 
     public HotfolderFolder(Path projectFolder, String templateName) throws IOException {
@@ -49,7 +52,7 @@ public class HotfolderFolder {
 
         for (Path barcodePath : lstProcessFolders) {
             Instant lastModified = Files.getLastModifiedTime(barcodePath).toInstant();
-            Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(1));
+            Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesInactivity));
             if (lastModified.isBefore(thirtyMinutesAgo)) {
                 lstFoldersToImport.add(barcodePath);
             }

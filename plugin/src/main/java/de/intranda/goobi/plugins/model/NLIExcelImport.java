@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.excel;
+package de.intranda.goobi.plugins.model;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,7 +23,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
+//import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -37,9 +37,6 @@ import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
-import de.intranda.goobi.plugins.excel.nli.MetadataMappingObject;
-import de.intranda.goobi.plugins.excel.nli.NLIExcelConfig;
-import de.intranda.goobi.plugins.model.HotfolderFolder;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.Helper;
@@ -51,9 +48,8 @@ import de.sub.goobi.persistence.managers.ProcessManager;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
-//import lombok.EqualsAndHashCode;
-//import lombok.extern.log4j.Log4j;
-import net.xeoh.plugins.base.annotations.PluginImplementation;
+import lombok.extern.log4j.Log4j2;
+//import net.xeoh.plugins.base.annotations.PluginImplementation;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
@@ -66,9 +62,9 @@ import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.exceptions.WriteException;
 import ugh.fileformats.mets.MetsMods;
 
-//@Log4j
+@Log4j2
 @Data
-@PluginImplementation
+//@PluginImplementation
 public class NLIExcelImport {
 
     private Prefs prefs;
@@ -80,19 +76,14 @@ public class NLIExcelImport {
     private String volumeNumber;
     private String processTitle;
 
-    //    @EqualsAndHashCode.Exclude
     private boolean replaceExisting = false;
-    //    @EqualsAndHashCode.Exclude
     private boolean moveFiles = false;
 
     private static String title = "intranda_administration_hotfolder_nli";
 
-    //    private Map<String, Integer> headerOrder;
-
     private List<ImportType> importTypes;
     private String workflowTitle;
 
-    //    @EqualsAndHashCode.Exclude
     private NLIExcelConfig config;
     private Process template;
 
@@ -198,7 +189,7 @@ public class NLIExcelImport {
                     }
                 }
             } catch (Exception e) {
-                //                        log.error(e);
+                log.error(e);
                 io.setErrorMessage(e.getMessage());
                 io.setImportReturnValue(ImportReturnValue.NoData);
                 return null;
@@ -230,7 +221,7 @@ public class NLIExcelImport {
                     if (!validRequest) {
                         if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
                             Helper.setFehlerMeldung("Cannot request catalogue, no identifier column defined");
-                            //                                log.error("Cannot request catalogue, no identifier column defined");
+                            log.error("Cannot request catalogue, no identifier column defined");
                             return null;
                         }
 
@@ -263,7 +254,7 @@ public class NLIExcelImport {
                     }
 
                 } catch (Exception e) {
-                    //                        log.error(e);
+                    log.error(e);
                     io.setErrorMessage(e.getMessage());
                     io.setImportReturnValue(ImportReturnValue.NoData);
                     return null;
@@ -312,17 +303,16 @@ public class NLIExcelImport {
                             logical.addMetadata(md);
                         }
                     } catch (MetadataTypeNotAllowedException e) {
-                        //                            log.info(e);
+                        log.info(e);
                         // Metadata is not known or not allowed
                     }
-//                    // create a default title
-//                    if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
-//                        fileName = importFolder + File.separator + value + ".xml";
-//                        io.setProcessTitle(value);
-//                        io.setMetsFilename(fileName);
-//                    }
+                    //                    // create a default title
+                    //                    if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
+                    //                        fileName = importFolder + File.separator + value + ".xml";
+                    //                        io.setProcessTitle(value);
+                    //                        io.setMetsFilename(fileName);
+                    //                    }
                 }
-
 
                 if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
                     Processproperty p = new Processproperty();
@@ -331,7 +321,7 @@ public class NLIExcelImport {
                     io.getProcessProperties().add(p);
                 }
             }
-            
+
             //Name the process:
             currentIdentifier = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
             String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
@@ -352,7 +342,7 @@ public class NLIExcelImport {
                         existingProcess.writeMetadataFile(ff);
                         dataReplaced = true;
                     } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
-                        //                            log.error(e);
+                        log.error(e);
                         return null;
                     }
 
@@ -360,11 +350,22 @@ public class NLIExcelImport {
                     moveImageIntoProcessFolder(existingProcess, sourceRootFolder);
                 }
                 if (dataReplaced) {
+                    //remove temp file
+                    if (io.getMetsFilename() != null) {
+                        File file = new File(io.getMetsFilename());
+                        if (file.exists()) {
+                            StorageProvider.getInstance().deleteFile(file.toPath());
+                        }
+                        File folder = new File(io.getMetsFilename().replace(".xml", ""));
+                        if (folder.exists()) {
+                            StorageProvider.getInstance().deleteDir(folder.toPath());
+                        }
+                    }
                     return null;
                 }
             }
 
-        } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException e) {
+        } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException | IOException e) {
             io.setImportReturnValue(ImportReturnValue.WriteError);
             io.setErrorMessage(e.getMessage());
         }
@@ -409,10 +410,9 @@ public class NLIExcelImport {
                 if (config.isMoveImage()) {
                     StorageProvider.getInstance().deleteDir(imageSourceFolder);
                 }
-                //                    StorageProvider.getInstance().copyDirectory(imageSourceFolder, path);
             } catch (IOException e) {
                 System.console().printf(e.getMessage());
-                //                log.error(e);
+                log.error(e);
             }
 
         }
@@ -442,7 +442,7 @@ public class NLIExcelImport {
                     }
                 } catch (IOException | InterruptedException | SwapException | DAOException e) {
                     System.console().printf(e.getMessage());
-                    //                            log.error(e);
+                    log.error(e);
                 }
             }
 
@@ -454,13 +454,13 @@ public class NLIExcelImport {
                         try {
                             copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
                         } catch (IOException | SwapException | DAOException | InterruptedException e) {
-                            //                            log.error(e);
+                            log.error(e);
                         }
                     } else {
                         try {
                             FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
                         } catch (IOException | SwapException | DAOException | InterruptedException e) {
-                            //                            log.error(e);
+                            log.error(e);
                         }
                     }
                 }
@@ -542,7 +542,7 @@ public class NLIExcelImport {
             for (int i = 0; i < numberOfCells; i++) {
                 Cell cell = headerRow.getCell(i);
                 if (cell != null) {
-                    cell.setCellType(CellType.STRING);
+                    //                    cell.setCellType(CellType.STRING);
                     String value = cell.getStringCellValue();
                     headerOrder.put(value, i);
                 }
@@ -560,14 +560,14 @@ public class NLIExcelImport {
             }
 
         } catch (IOException e) {
-            //          log.error(e);
+            log.error(e);
             throw e;
         } finally {
             if (fileInputStream != null) {
                 try {
                     fileInputStream.close();
                 } catch (IOException e) {
-                    //                    log.error(e);
+                    log.error(e);
                 }
             }
         }

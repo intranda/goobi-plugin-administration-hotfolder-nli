@@ -28,7 +28,7 @@ import org.quartz.Trigger;
 import org.quartz.TriggerUtils;
 import org.quartz.impl.StdSchedulerFactory;
 
-import de.intranda.goobi.plugins.excel.NLIExcelImport;
+import de.intranda.goobi.plugins.model.NLIExcelImport;
 import de.intranda.goobi.plugins.model.HotfolderFolder;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.StorageProvider;
@@ -154,15 +154,19 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                     org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
 
                     if (processNew != null && processNew.getId() != null) {
-                        
-                        //remove temp file
-                        if (io.getMetsFilename() != null) {
-                            File file = new File(io.getMetsFilename());
-                            if (file.exists()) {
-                                StorageProvider.getInstance().deleteFile(file.toPath());
-                            }
-                        }
                         log.info("NLI hotfolder - created process: " + processNew.getId());
+                    }
+
+                    //remove temp file
+                    if (io.getMetsFilename() != null) {
+                        File file = new File(io.getMetsFilename());
+                        if (file.exists()) {
+                            StorageProvider.getInstance().deleteFile(file.toPath());
+                        }
+                        File folder = new File(io.getMetsFilename().replace(".xml", ""));
+                        if (folder.exists()) {
+                            StorageProvider.getInstance().deleteDir(folder.toPath());
+                        }
                     }
 
                 }

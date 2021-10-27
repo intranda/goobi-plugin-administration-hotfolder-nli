@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.excel.nli;
+package de.intranda.goobi.plugins.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +7,7 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
 
 import lombok.Data;
+
 
 @Data
 public class NLIExcelConfig {
@@ -34,61 +35,6 @@ public class NLIExcelConfig {
     private boolean moveImage;
     private List<String> mandatoryColumns = new ArrayList<>();
 
-    public String getPublicationType() {
-        return publicationType;
-     }
-    
-    public List<MetadataMappingObject> getMetadataList() {
-        return metadataList;
-    }
-
-    public String getIdentifierHeaderName() {
-        return identifierHeaderName;
-    }
-    
-    public boolean isUseOpac() {
-        return useOpac;
-     }
-
-     public int getRowHeader() {
-         return rowHeader;
-     }
-
-     public int getRowDataStart() {
-       return rowDataStart;
-     }
-
-     public int getRowDataEnd() {
-         return rowDataEnd;
-     }
-
-     public String getOpacHeader() {
-         return opacHeader;
-     }
-
-     public boolean isMoveImage() {
-         return moveImage;
-     }
-
-     public String getSearchField() {
-         return searchField;
-     }
-
-     public String getOpacName() {
-         return opacName;
-     }
-
-     public String getCollection() {
-         return collection;
-     }
-
-     public String getProcessHeaderName() {
-         return processHeaderName;
-     }
-     
-     public String getImagesHeaderName() {
-         return imagesHeaderName;
-     }
 
     /**
      * loads the &lt;config&gt; block from xml file
