@@ -85,6 +85,10 @@ public class NLIExcelConfig {
      public String getProcessHeaderName() {
          return processHeaderName;
      }
+     
+     public String getImagesHeaderName() {
+         return imagesHeaderName;
+     }
 
     /**
      * loads the &lt;config&gt; block from xml file
@@ -106,7 +110,7 @@ public class NLIExcelConfig {
         rowDataStart = xmlConfig.getInt("/rowDataStart", 2);
         rowDataEnd = xmlConfig.getInt("/rowDataEnd", 20000);
 
-        moveImage = xmlConfig.getBoolean("/moveImages", false);
+        moveImage = xmlConfig.getBoolean("/moveImages", true);
 
         List<HierarchicalConfiguration> mml = xmlConfig.configurationsAt("//metadata");
         for (HierarchicalConfiguration md : mml) {
@@ -135,6 +139,7 @@ public class NLIExcelConfig {
         String headerName = md.getString("@headerName", null);
         String normdataHeaderName = md.getString("@normdataHeaderName", null);
         String docType = md.getString("@docType", "child");
+        Boolean boMandatory = md.getBoolean("@mandatory", false);
 
         MetadataMappingObject mmo = new MetadataMappingObject();
         mmo.setExcelColumn(columnNumber);
@@ -144,6 +149,7 @@ public class NLIExcelConfig {
         mmo.setHeaderName(headerName);
         mmo.setNormdataHeaderName(normdataHeaderName);
         mmo.setDocType(docType);
+        mmo.setMandatory(boMandatory);
 
         mmo.setSearchField(md.getString("@opacSearchField", null));
         return mmo;

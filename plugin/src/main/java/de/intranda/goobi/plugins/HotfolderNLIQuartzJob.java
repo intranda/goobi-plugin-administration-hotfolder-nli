@@ -6,8 +6,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,44 +31,13 @@ import org.quartz.impl.StdSchedulerFactory;
 import de.intranda.goobi.plugins.excel.NLIExcelImport;
 import de.intranda.goobi.plugins.model.HotfolderFolder;
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
 
 @WebListener
 @Log4j2
 public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
-
-    //test
-    public static void main(String[] args) {
-
-        HotfolderNLIQuartzJob job = new HotfolderNLIQuartzJob();
-
-        Path hotfolderPath = Paths.get("/home/joel/git/NLI/hotfolder/");
-        Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        if (Files.exists(lockFile)) {
-            log.info("NLI hotfolder is already running - not running a second time in parallel");
-            return;
-        }
-        Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
-        if (Files.exists(pauseFile)) {
-            log.info("NLI hotfolder is paused - not running");
-            return;
-        }
-        try {
-            Files.createFile(lockFile);
-            List<HotfolderFolder> importFolders = job.traverseHotfolder(hotfolderPath);
-            job.createProcesses(importFolders);
-        } catch (IOException e) {
-            log.error("Error running NLI hotfolder: {}", e);
-        } finally {
-            try {
-                Files.deleteIfExists(lockFile);
-            } catch (IOException e) {
-                log.error("Error deleting NLI hotfolder lock file: {}", e);
-            }
-        }
-
-    }
 
     private static String title = "intranda_administration_hotfolder_nli";
 
@@ -83,26 +50,29 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
     public void execute(JobExecutionContext jec) throws JobExecutionException {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
-        
+
         if (!Files.exists(hotfolderPath)) {
-            log.info("NLI hotfolder is not present: "+ hotfolderPath);
+            log.info("NLI hotfolder is not present: " + hotfolderPath);
             return;
         }
-        
+
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
         if (Files.exists(lockFile)) {
             log.info("NLI hotfolder is already running - not running a second time in parallel");
             return;
         }
+
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
         if (Files.exists(pauseFile)) {
             log.info("NLI hotfolder is paused - not running");
             return;
         }
+
         try {
             Files.createFile(lockFile);
             List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
             createProcesses(importFolders);
+
         } catch (IOException e) {
             log.error("Error running NLI hotfolder: {}", e);
         } finally {
@@ -153,29 +123,54 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
         for (HotfolderFolder hff : importFolders) {
 
-            File importFile = hff.getImportFile();
-            List<Path> processFolders = hff.getCurrentProcessFolders();
+            try {
+                File importFile = hff.getImportFile();
+                List<Path> processFolders = hff.getCurrentProcessFolders();
 
-            if (importFile == null || processFolders.isEmpty()) {
-                continue;
-            }
+                if (importFile == null || processFolders.isEmpty()) {
+                    continue;
+                }
 
-            //otherwise:
-            log.info("NLI hotfolder - importing: " + importFile);
-            System.out.println("NLI hotfolder - importing: " + importFile);
+                //otherwise:
+                log.info("NLI hotfolder - importing: " + importFile);
+                System.out.println("NLI hotfolder - importing: " + importFile);
 
-            if (excelImport == null) {
-                excelImport = new NLIExcelImport(hff);
-            }
+                if (excelImport == null) {
+                    excelImport = new NLIExcelImport(hff);
+                }
 
-            List<Record> records = excelImport.generateRecordsFromFile(importFile, processFolders);
-            
-            List<ImportObject> ios = excelImport.generateFiles(records, hff);
-            org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
-            
-            for (ImportObject io : ios) {
-              
-                org.goobi.beans.Process p = JobCreation.generateProcess(io, template);
+                List<Record> records = excelImport.generateRecordsFromFile(importFile, processFolders);
+
+                for (Record record : records) {
+
+                    ImportObject io = excelImport.generateFile(record, hff);
+
+                    if (io == null) {
+                        continue;
+                    }
+
+                    //otherwise:
+                    org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
+                    org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
+
+                    if (processNew != null && processNew.getId() != null) {
+                        
+                        //remove temp file
+                        if (io.getMetsFilename() != null) {
+                            File file = new File(io.getMetsFilename());
+                            if (file.exists()) {
+                                StorageProvider.getInstance().deleteFile(file.toPath());
+                            }
+                        }
+                        log.info("NLI hotfolder - created process: " + processNew.getId());
+                    }
+
+                }
+
+            } catch (Exception e) {
+                log.info("NLI hotfolder - error: " + e.getMessage());
+                System.out.println("NLI hotfolder - error: " + e.getMessage());
+                throw e;
             }
         }
     }

@@ -2,6 +2,7 @@ package de.intranda.goobi.plugins.excel.nli;
 
 import lombok.Data;
 
+
 @Data
 public class PersonMappingObject {
 

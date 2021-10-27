@@ -12,7 +12,6 @@ import java.util.List;
 
 import lombok.Getter;
 
-
 public class HotfolderFolder {
 
     @Getter
@@ -67,14 +66,6 @@ public class HotfolderFolder {
             }
         }
         
-//        try (DirectoryStream<Path> barcodeDirStream = Files.newDirectoryStream(projectFolder)) {
-//            for (Path filePath : barcodeDirStream) {
-//                if (!Files.isDirectory(filePath) && filePath.toString().endsWith(".xslx")) {
-//                    return new File(filePath.toString());
-//                }
-//            }
-//        }
-
         //otherwise
         return null;
     }

@@ -1,6 +1,6 @@
 <config_plugin>
     <!-- hotfolder -->
-    <hotfolderPath>/home/joel/git/NLI/hotfolder</hotfolderPath>
+    <hotfolderPath>/opt/digiverso/import/hotfolder</hotfolderPath>
    
     <config>
         <!-- Use this config for the following workflow template: -->
@@ -29,8 +29,10 @@
         <processHeaderName>Process title</processHeaderName>
         <!-- define which column is the one to use for naming the image files -->
         <imagesHeaderName>dcterms:IE_Title</imagesHeaderName>
-        <!-- defines, if images are moved from the source folder to the destination (true) or copied (false) -->
-        <moveImages>false</moveImages>
+        
+        <!-- If false, do not delete the import image folder after import. -->
+        <moveImages>true</moveImages>
+        
         <!-- Overwrite any existing processes -->
         <replaceExistingProcesses>true</replaceExistingProcesses>
         <!-- define here which columns shall be mapped to which ugh metadata

@@ -4,24 +4,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.configuration.ConfigurationException;
+
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -110,15 +108,6 @@ public class NLIExcelImport {
         }
     }
 
-    //    @Override
-    //    public Fileformat convertData() throws ImportPluginException {
-    //        return null;
-    //    }
-    //
-    //    @Override
-    //    public void setData(Record r) {
-    //    }
-
     private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder, String catalogue)
             throws ImportPluginException {
         IOpacPlugin myImportOpac = null;
@@ -134,92 +123,34 @@ public class NLIExcelImport {
         }
         Fileformat myRdf = null;
         DocStruct ds = null;
-        if (myImportOpac.getTitle().equals("intranda_opac_json")) {
 
-            /**
-             * 
-             * JsonOpacPlugin jsonOpacPlugin = (JsonOpacPlugin) myImportOpac; de.intranda.goobi.plugins.util.Config jsonOpacConfig =
-             * jsonOpacPlugin.getConfigForOpac(); for (MetadataMappingObject mmo : config.getMetadataList()) { if
-             * (StringUtils.isNotBlank(mmo.getSearchField())) { for (SearchField sf : jsonOpacConfig.getFieldList()) { if
-             * ((sf.getId()).equals(mmo.getSearchField())) { String value = rowMap.get(headerOrder.get(mmo.getHeaderName())); if
-             * (StringUtils.isNotBlank(value)) { sf.setText(value); sf.setSelectedField(mmo.getHeaderName()); } } } } }
-             * 
-             * Direct access to the classes is not possible because of different class loaders. Replace code above with reflections:
-             */
+        String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+        try {
 
-            try {
-                Class<? extends Object> opacClass = myImportOpac.getClass();
-                Method getConfigForOpac = opacClass.getMethod("getConfigForOpac");
-                Object jsonOpacConfig = getConfigForOpac.invoke(myImportOpac);
-
-                Class<? extends Object> jsonOpacConfigClass = jsonOpacConfig.getClass();
-
-                Method getFieldList = jsonOpacConfigClass.getMethod("getFieldList");
-
-                Object fieldList = getFieldList.invoke(jsonOpacConfig);
-                List<Object> searchfields = (List<Object>) fieldList;
-                for (MetadataMappingObject mmo : config.getMetadataList()) {
-                    if (StringUtils.isNotBlank(mmo.getSearchField())) {
-                        for (Object searchField : searchfields) {
-                            Class<? extends Object> searchFieldClass = searchField.getClass();
-
-                            Method getId = searchFieldClass.getMethod("getId");
-
-                            Method setText = searchFieldClass.getMethod("setText", String.class);
-                            Method setSelectedField = searchFieldClass.getMethod("setSelectedField", String.class);
-
-                            Object id = getId.invoke(searchField);
-                            if (((String) id).equals(mmo.getSearchField())) {
-                                String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
-                                if (StringUtils.isNotBlank(value)) {
-                                    setText.invoke(searchField, value);
-                                    setSelectedField.invoke(searchField, mmo.getHeaderName());
-                                }
-                            }
-                        }
-                    }
-                }
-                Method search = opacClass.getMethod("search", String.class, String.class, ConfigOpacCatalogue.class, Prefs.class);
-
-                myRdf = (Fileformat) search.invoke(myImportOpac, "", "", coc, prefs);
-                try {
-
-                    ds = myRdf.getDigitalDocument().getLogicalDocStruct();
-                } catch (Exception e) {
-                    //                    log.error(e);
-                }
-            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                return null;
-            }
-
-        } else {
-            String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
-            try {
-
-                myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
-                if (myRdf == null) {
-                    throw new ImportPluginException("Could not import record " + identifier
-                            + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
-                }
-            } catch (Exception e1) {
+            myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
+            if (myRdf == null) {
                 throw new ImportPluginException("Could not import record " + identifier
                         + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
             }
-
-            try {
-                ds = myRdf.getDigitalDocument().getLogicalDocStruct();
-                if (ds.getType().isAnchor()) {
-                    if (ds.getAllChildren() == null || ds.getAllChildren().isEmpty()) {
-                        throw new ImportPluginException(
-                                "Could not import record " + identifier + ". Found anchor file, but no children. Try to import the child record.");
-                    }
-                    ds = ds.getAllChildren().get(0);
-                }
-            } catch (PreferencesException e1) {
-                throw new ImportPluginException("Could not import record " + identifier
-                        + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
-            }
+        } catch (Exception e1) {
+            throw new ImportPluginException("Could not import record " + identifier
+                    + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
         }
+
+        try {
+            ds = myRdf.getDigitalDocument().getLogicalDocStruct();
+            if (ds.getType().isAnchor()) {
+                if (ds.getAllChildren() == null || ds.getAllChildren().isEmpty()) {
+                    throw new ImportPluginException(
+                            "Could not import record " + identifier + ". Found anchor file, but no children. Try to import the child record.");
+                }
+                ds = ds.getAllChildren().get(0);
+            }
+        } catch (PreferencesException e1) {
+            throw new ImportPluginException("Could not import record " + identifier
+                    + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
+        }
+
         try {
             ats = myImportOpac.getAtstsl();
 
@@ -235,9 +166,7 @@ public class NLIExcelImport {
         return myRdf;
     }
 
-    @SuppressWarnings("unchecked")
-    public List<ImportObject> generateFiles(List<Record> records, HotfolderFolder hff) {
-        List<ImportObject> answer = new ArrayList<>();
+    public ImportObject generateFile(Record record, HotfolderFolder hff) {
 
         //reset the template if necessary:
         if (hff.getTemplateName() != workflowTitle) {
@@ -246,201 +175,215 @@ public class NLIExcelImport {
             getConfig();
         }
 
-        for (Record record : records) {
+        String timestamp = Long.toString(System.currentTimeMillis());
+        ImportObject io = new ImportObject();
+        try {
 
-            if (recordIncomplete(record)) {
-                continue;
-            }
+            Object tempObject = record.getObject();
 
-            String timestamp = Long.toString(System.currentTimeMillis());
-            ImportObject io = new ImportObject();
-            answer.add(io);
+            List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
+            Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
+            Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
+
+            //check mandatory fields:
             try {
-
-                Object tempObject = record.getObject();
-
-                List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
-                Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
-                Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
-
-                // generate a mets file
-                DigitalDocument digitalDocument = null;
-                Fileformat ff = null;
-                DocStruct logical = null;
-                DocStruct anchor = null;
-                if (!config.isUseOpac()) {
-                    ff = new MetsMods(prefs);
-                    digitalDocument = new DigitalDocument();
-                    ff.setDigitalDocument(digitalDocument);
-                    String publicationType = getConfig().getPublicationType();
-                    DocStructType logicalType = prefs.getDocStrctTypeByName(publicationType);
-                    logical = digitalDocument.createDocStruct(logicalType);
-                    digitalDocument.setLogicalDocStruct(logical);
-                } else {
-                    try {
-                        boolean validRequest = false;
-                        for (MetadataMappingObject mmo : config.getMetadataList()) {
-                            if (StringUtils.isNotBlank(mmo.getSearchField()) && headerOrder.get(mmo.getHeaderName()) != null) {
-                                validRequest = true;
-                                break;
-                            }
+                for (MetadataMappingObject mmo : config.getMetadataList()) {
+                    if (mmo.isMandatory()) {
+                        Integer col = headerOrder.get(mmo.getHeaderName());
+                        if (col == null || rowMap.get(col) == null || rowMap.get(col).isEmpty()) {
+                            io.setErrorMessage("Missing column: " + mmo.getHeaderName());
+                            io.setImportReturnValue(ImportReturnValue.NoData);
+                            return null;
                         }
-
-                        if (!validRequest) {
-                            if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
-                                Helper.setFehlerMeldung("Cannot request catalogue, no identifier column defined");
-                                //                                log.error("Cannot request catalogue, no identifier column defined");
-                                return Collections.emptyList();
-                            }
-
-                            Integer columnNumber = headerOrder.get(config.getIdentifierHeaderName());
-
-                            //                            if (columnNumber == null) {
-                            //                                Helper.setFehlerMeldung("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
-                            //                                        + "' not found in excel file.");
-                            //                                log.error("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
-                            //                                        + "' not found in excel file.");
-                            //                                return Collections.emptyList();
-                            //                            }
-
-                            String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
-                            if (StringUtils.isBlank(catalogueIdentifier)) {
-                                continue;
-                            }
-                        }
-
-                        String catalogue = rowMap.get(headerOrder.get(config.getOpacHeader()));
-                        if (StringUtils.isBlank(catalogue)) {
-                            catalogue = config.getOpacName();
-                        }
-                        ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
-                        digitalDocument = ff.getDigitalDocument();
-                        logical = digitalDocument.getLogicalDocStruct();
-                        if (logical.getType().isAnchor()) {
-                            anchor = logical;
-                            logical = anchor.getAllChildren().get(0);
-                        }
-
-                    } catch (Exception e) {
-                        //                        log.error(e);
-                        io.setErrorMessage(e.getMessage());
-                        io.setImportReturnValue(ImportReturnValue.NoData);
-                        continue;
                     }
                 }
-
-                DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
-                DocStruct physical = digitalDocument.createDocStruct(physicalType);
-                digitalDocument.setPhysicalDocStruct(physical);
-                Metadata imagePath = new Metadata(prefs.getMetadataTypeByName("pathimagefiles"));
-                imagePath.setValue("./images/");
-                physical.addMetadata(imagePath);
-
-                // add collections if configured
-                String col = getConfig().getCollection();
-                if (StringUtils.isNotBlank(col)) {
-                    Metadata mdColl = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                    mdColl.setValue(col);
-                    logical.addMetadata(mdColl);
-                }
-
-                //                // and add all collections that where selected
-                //                for (String colItem : hff..getDigitalCollections()) {
-                //                    if (!colItem.equals(col.trim())) {
-                //                        Metadata mdColl = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                //                        mdColl.setValue(colItem);
-                //                        logical.addMetadata(mdColl);
-                //                    }
-                //                }
-                // create file name for mets file
-                String fileName = null;
-
-                // create importobject for massimport
-
-                io.setImportReturnValue(ImportReturnValue.ExportFinished);
-
-                for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
-
-                    String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
-                    String identifier = null;
-                    if (mmo.getNormdataHeaderName() != null) {
-                        identifier = rowMap.get(headerOrder.get(mmo.getNormdataHeaderName()));
-                    }
-                    if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
-                        try {
-                            Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                            md.setValue(value);
-                            if (identifier != null) {
-                                md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
-
-                            }
-                            if (anchor != null && "anchor".equals(mmo.getDocType())) {
-                                anchor.addMetadata(md);
-                            } else {
-                                logical.addMetadata(md);
-                            }
-                        } catch (MetadataTypeNotAllowedException e) {
-                            //                            log.info(e);
-                            // Metadata is not known or not allowed
-                        }
-                        // create a default title
-                        if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
-                            fileName = importFolder + File.separator + value + ".xml";
-                            io.setProcessTitle(value);
-                            io.setMetsFilename(fileName);
-                        }
-                    }
-
-                    //images folder:
-
-                    String processName = hff.getProjectFolder().getFileName() + "_" + record.getId();
-                    //                    String processImagesFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
-                    //                    importFolder = Paths.get(hff.getProjectFolder().toString(), processImagesFolder).toString();
-
-                    fileName = nameProcess(processName, io);
-                    if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
-                        Processproperty p = new Processproperty();
-                        p.setTitel(mmo.getPropertyName());
-                        p.setWert(value);
-                        io.getProcessProperties().add(p);
-                    }
-                }
-
-                // write mets file into import folder
-                ff.write(fileName);
-
-                moveImages(io, headerOrder, rowMap, fileName, hff);
-
-                // check if the process exists
-                if (replaceExisting) {
-                    boolean dataReplaced = false;
-                    Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
-                    if (existingProcess != null) {
-                        try {
-                            existingProcess.writeMetadataFile(ff);
-                            dataReplaced = true;
-                        } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
-                            //                            log.error(e);
-                        }
-
-                        Path sourceRootFolder = Paths.get(record.getData());
-                        moveImageIntoProcessFolder(existingProcess, sourceRootFolder);
-                    }
-                    if (dataReplaced) {
-                        // TODO delete mets file, anchor file, image folder
-                        answer.remove(io);
-                        continue;
-                    }
-                }
-
-            } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException e) {
-                io.setImportReturnValue(ImportReturnValue.WriteError);
+            } catch (Exception e) {
+                //                        log.error(e);
                 io.setErrorMessage(e.getMessage());
+                io.setImportReturnValue(ImportReturnValue.NoData);
+                return null;
             }
 
+            // generate a mets file
+            DigitalDocument digitalDocument = null;
+            Fileformat ff = null;
+            DocStruct logical = null;
+            DocStruct anchor = null;
+            if (!config.isUseOpac()) {
+                ff = new MetsMods(prefs);
+                digitalDocument = new DigitalDocument();
+                ff.setDigitalDocument(digitalDocument);
+                String publicationType = getConfig().getPublicationType();
+                DocStructType logicalType = prefs.getDocStrctTypeByName(publicationType);
+                logical = digitalDocument.createDocStruct(logicalType);
+                digitalDocument.setLogicalDocStruct(logical);
+            } else {
+                try {
+                    boolean validRequest = false;
+                    for (MetadataMappingObject mmo : config.getMetadataList()) {
+                        if (StringUtils.isNotBlank(mmo.getSearchField()) && headerOrder.get(mmo.getHeaderName()) != null) {
+                            validRequest = true;
+                            break;
+                        }
+                    }
+
+                    if (!validRequest) {
+                        if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
+                            Helper.setFehlerMeldung("Cannot request catalogue, no identifier column defined");
+                            //                                log.error("Cannot request catalogue, no identifier column defined");
+                            return null;
+                        }
+
+                        //                        Integer columnNumber = headerOrder.get(config.getIdentifierHeaderName());
+
+                        //                            if (columnNumber == null) {
+                        //                                Helper.setFehlerMeldung("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
+                        //                                        + "' not found in excel file.");
+                        //                                log.error("Cannot request catalogue, identifier column '" + config.getIdentifierHeaderName()
+                        //                                        + "' not found in excel file.");
+                        //                                return Collections.emptyList();
+                        //                            }
+
+                        String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+                        if (StringUtils.isBlank(catalogueIdentifier)) {
+                            return null;
+                        }
+                    }
+
+                    String catalogue = rowMap.get(headerOrder.get(config.getOpacHeader()));
+                    if (StringUtils.isBlank(catalogue)) {
+                        catalogue = config.getOpacName();
+                    }
+                    ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
+                    digitalDocument = ff.getDigitalDocument();
+                    logical = digitalDocument.getLogicalDocStruct();
+                    if (logical.getType().isAnchor()) {
+                        anchor = logical;
+                        logical = anchor.getAllChildren().get(0);
+                    }
+
+                } catch (Exception e) {
+                    //                        log.error(e);
+                    io.setErrorMessage(e.getMessage());
+                    io.setImportReturnValue(ImportReturnValue.NoData);
+                    return null;
+                }
+            }
+
+            DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
+            DocStruct physical = digitalDocument.createDocStruct(physicalType);
+            digitalDocument.setPhysicalDocStruct(physical);
+            Metadata imagePath = new Metadata(prefs.getMetadataTypeByName("pathimagefiles"));
+            imagePath.setValue("./images/");
+            physical.addMetadata(imagePath);
+
+            // add collections if configured
+            String col = getConfig().getCollection();
+            if (StringUtils.isNotBlank(col)) {
+                Metadata mdColl = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
+                mdColl.setValue(col);
+                logical.addMetadata(mdColl);
+            }
+
+            // create file name for mets file
+            String fileName = null;
+
+            // create importobject for massimport
+            io.setImportReturnValue(ImportReturnValue.ExportFinished);
+
+            for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
+
+                String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
+                String identifier = null;
+                if (mmo.getNormdataHeaderName() != null) {
+                    identifier = rowMap.get(headerOrder.get(mmo.getNormdataHeaderName()));
+                }
+                if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
+                    try {
+                        Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+                        md.setValue(value);
+                        if (identifier != null) {
+                            md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
+
+                        }
+                        if (anchor != null && "anchor".equals(mmo.getDocType())) {
+                            anchor.addMetadata(md);
+                        } else {
+                            logical.addMetadata(md);
+                        }
+                    } catch (MetadataTypeNotAllowedException e) {
+                        //                            log.info(e);
+                        // Metadata is not known or not allowed
+                    }
+//                    // create a default title
+//                    if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
+//                        fileName = importFolder + File.separator + value + ".xml";
+//                        io.setProcessTitle(value);
+//                        io.setMetsFilename(fileName);
+//                    }
+                }
+
+
+                if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
+                    Processproperty p = new Processproperty();
+                    p.setTitel(mmo.getPropertyName());
+                    p.setWert(value);
+                    io.getProcessProperties().add(p);
+                }
+            }
+            
+            //Name the process:
+            currentIdentifier = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
+            String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
+            currentIdentifier = processName;
+            fileName = nameProcess(processName, io);
+
+            // write mets file into import folder
+            ff.write(fileName);
+
+            moveImages(io, headerOrder, rowMap, fileName, hff);
+
+            // check if the process exists
+            if (replaceExisting) {
+                boolean dataReplaced = false;
+                Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
+                if (existingProcess != null) {
+                    try {
+                        existingProcess.writeMetadataFile(ff);
+                        dataReplaced = true;
+                    } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
+                        //                            log.error(e);
+                        return null;
+                    }
+
+                    Path sourceRootFolder = Paths.get(record.getData());
+                    moveImageIntoProcessFolder(existingProcess, sourceRootFolder);
+                }
+                if (dataReplaced) {
+                    return null;
+                }
+            }
+
+        } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException e) {
+            io.setImportReturnValue(ImportReturnValue.WriteError);
+            io.setErrorMessage(e.getMessage());
         }
-        // end of all excel rows
+
+        return io;
+    }
+
+    public List<ImportObject> generateFiles(List<Record> records, HotfolderFolder hff) {
+        List<ImportObject> answer = new ArrayList<>();
+
+        for (Record record : records) {
+            ImportObject io = generateFile(record, hff);
+            if (io != null) {
+                answer.add(io);
+            }
+        }
+
         return answer;
+
     }
 
     private void moveImages(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, String fileName, HotfolderFolder hff) {
@@ -448,12 +391,12 @@ public class NLIExcelImport {
         String imageFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
         Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
 
-        if (Files.exists(imageSourceFolder) && Files.isDirectory(imageSourceFolder)) {
+        currentIdentifier = rowMap.get(headerOrder.get(config.getImagesHeaderName()));
+        if (currentIdentifier == null || currentIdentifier.isEmpty()) {
+            currentIdentifier = io.getProcessTitle();
+        }
 
-            // folder name
-            //            String folderCopyName = Paths.get(fileName).getFileName().toString().replace(".xml", "");
-            //            String foldername = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), folderCopyName).toString();
-            // folder name
+        if (Files.exists(imageSourceFolder) && Files.isDirectory(imageSourceFolder)) {
 
             String foldername = fileName.replace(".xml", "");
             String folderNameRule = ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
@@ -461,13 +404,14 @@ public class NLIExcelImport {
 
             Path path = Paths.get(foldername, "images", folderNameRule);
             try {
-                Files.createDirectories(path.getParent());
+
+                copyImagesToFolder(imageSourceFolder, path.toString());
                 if (config.isMoveImage()) {
-                    StorageProvider.getInstance().move(imageSourceFolder, path);
-                } else {
-                    StorageProvider.getInstance().copyDirectory(imageSourceFolder, path);
+                    StorageProvider.getInstance().deleteDir(imageSourceFolder);
                 }
+                //                    StorageProvider.getInstance().copyDirectory(imageSourceFolder, path);
             } catch (IOException e) {
+                System.console().printf(e.getMessage());
                 //                log.error(e);
             }
 
@@ -483,34 +427,22 @@ public class NLIExcelImport {
         return fileName;
     }
 
-    //check all mandatory fields
-    private boolean recordIncomplete(Record record) {
-
-        return false;
-    }
-
     private void moveImageIntoProcessFolder(Process existingProcess, Path sourceRootFolder) {
         if (StorageProvider.getInstance().isFileExists(sourceRootFolder)) {
             Path sourceImageFolder = Paths.get(sourceRootFolder.toString(), "images");
             Path sourceOcrFolder = Paths.get(sourceRootFolder.toString(), "ocr");
-            if (StorageProvider.getInstance().isDirectory(sourceImageFolder)) {
-                List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceImageFolder.toString());
 
-                for (Path currentData : dataInSourceImageFolder) {
-                    if (Files.isDirectory(currentData)) {
-                        try {
-                            FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getImagesDirectory()).toFile());
-                        } catch (IOException | InterruptedException | SwapException | DAOException e) {
-                            //                            log.error(e);
-                        }
-                    } else {
-                        try {
-                            FileUtils.copyFile(currentData.toFile(),
-                                    Paths.get(existingProcess.getImagesDirectory(), currentData.getFileName().toString()).toFile());
-                        } catch (IOException | InterruptedException | SwapException | DAOException e) {
-                            //                            log.error(e);
-                        }
+            if (StorageProvider.getInstance().isDirectory(sourceImageFolder)) {
+                try {
+                    String copyToDirectory = existingProcess.getImagesDirectory();
+
+                    copyImagesToFolder(sourceImageFolder, copyToDirectory);
+                    if (config.isMoveImage()) {
+                        StorageProvider.getInstance().deleteDir(sourceImageFolder);
                     }
+                } catch (IOException | InterruptedException | SwapException | DAOException e) {
+                    System.console().printf(e.getMessage());
+                    //                            log.error(e);
                 }
             }
 
@@ -536,12 +468,37 @@ public class NLIExcelImport {
         }
     }
 
+    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory) throws IOException {
+
+        List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceImageFolder.toString());
+        dataInSourceImageFolder.sort(Comparator.comparing(o -> o.toFile().getName().toUpperCase()));
+        Files.createDirectories(Paths.get(copyToDirectory));
+
+        int iNumber = 1;
+        for (Path currentData : dataInSourceImageFolder) {
+            if (Files.isDirectory(currentData)) {
+                StorageProvider.getInstance().copyDirectory(currentData, Paths.get(copyToDirectory));
+            } else {
+                String number = String.format("%04d", iNumber);
+                String newFilename = currentIdentifier + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
+                iNumber++;
+                StorageProvider.getInstance().copyFile(currentData, Paths.get(copyToDirectory, newFilename));
+            }
+        }
+    }
+
     private void copyFile(Path file, Path destination) throws IOException {
 
         if (moveFiles) {
-            Files.move(file, destination, StandardCopyOption.REPLACE_EXISTING);
+            StorageProvider.getInstance().move(file, destination);
+            //            Files.move(file, destination, StandardCopyOption.REPLACE_EXISTING);
         } else {
-            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
+            if (Files.isDirectory(file)) {
+                StorageProvider.getInstance().copyDirectory(file, destination);
+            } else {
+                StorageProvider.getInstance().copyFile(file, destination);
+            }
+            //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
         }
 
     }
@@ -603,7 +560,7 @@ public class NLIExcelImport {
             }
 
         } catch (IOException e) {
-//          log.error(e);
+            //          log.error(e);
             throw e;
         } finally {
             if (fileInputStream != null) {

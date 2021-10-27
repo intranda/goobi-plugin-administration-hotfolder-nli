@@ -1,6 +1,7 @@
 package de.intranda.goobi.plugins.excel.nli;
 
 import lombok.Data;
+ 
 
 @Data
 public class MetadataMappingObject {
@@ -17,6 +18,7 @@ public class MetadataMappingObject {
     private String docType;
 
     private String searchField;
+    private Boolean mandatory;
 
     public String getDocType() {
         return docType;
@@ -45,6 +47,10 @@ public class MetadataMappingObject {
     public Integer getExcelColumn() {
         return excelColumn;
     }
+    
+    public Boolean isMandatory() {
+        return mandatory;
+    }
 
     public void setExcelColumn(Integer columnNumber) {
         this.excelColumn = columnNumber;
@@ -72,5 +78,9 @@ public class MetadataMappingObject {
 
     public void setSearchField(String searchField) {
         this.searchField = searchField;
+    }
+
+    public void setMandatory(Boolean boMandatory) {
+       this.mandatory = boMandatory;
     }
 }

@@ -3,11 +3,11 @@ package de.intranda.goobi.plugins.excel.nli;
 import java.util.ArrayList;
 import java.util.List;
 
-//import lombok.Data;
+import lombok.Data;
 
-//@Data
+
+@Data
 public class GroupMappingObject {
-
 
     private String rulesetName;
     private List<MetadataMappingObject> metadataList = new ArrayList<>();
