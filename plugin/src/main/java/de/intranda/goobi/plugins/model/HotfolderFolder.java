@@ -21,7 +21,7 @@ public class HotfolderFolder {
     @Getter
     private String templateName;
 
-    private Integer minutesInactivity = 1;
+    private Integer minutesInactivity = 30;
     
     private List<Path> lstProcessFolders;
 
