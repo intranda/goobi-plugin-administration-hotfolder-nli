@@ -14,6 +14,7 @@ import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
 import org.apache.commons.configuration.XMLConfiguration;
+import org.goobi.beans.Step;
 import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
@@ -28,9 +29,10 @@ import org.quartz.Trigger;
 import org.quartz.TriggerUtils;
 import org.quartz.impl.StdSchedulerFactory;
 
-import de.intranda.goobi.plugins.model.NLIExcelImport;
 import de.intranda.goobi.plugins.model.HotfolderFolder;
+import de.intranda.goobi.plugins.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.helper.HelperSchritte;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
@@ -155,6 +157,11 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
                     if (processNew != null && processNew.getId() != null) {
                         log.info("NLI hotfolder - created process: " + processNew.getId());
+
+                        //close first step
+                        HelperSchritte hs = new HelperSchritte();
+                        Step firstOpenStep = processNew.getFirstOpenStep();
+                        hs.CloseStepObjectAutomatic(firstOpenStep);
                     }
 
                     //remove temp file
