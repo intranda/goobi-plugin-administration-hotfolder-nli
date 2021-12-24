@@ -241,10 +241,7 @@ public class NLIExcelImport {
                         }
                     }
 
-                    String catalogue = rowMap.get(headerOrder.get(config.getOpacHeader()));
-                    if (StringUtils.isBlank(catalogue)) {
-                        catalogue = config.getOpacName();
-                    }
+                    String catalogue = config.getOpacName();
                     ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
                     digitalDocument = ff.getDigitalDocument();
                     logical = digitalDocument.getLogicalDocStruct();
