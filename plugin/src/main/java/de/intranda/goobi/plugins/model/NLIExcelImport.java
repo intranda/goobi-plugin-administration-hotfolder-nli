@@ -157,6 +157,7 @@ public class NLIExcelImport {
         return myRdf;
     }
 
+    @SuppressWarnings("unchecked")
     public ImportObject generateFile(Record record, HotfolderFolder hff) {
 
         //reset the template if necessary:
@@ -288,16 +289,25 @@ public class NLIExcelImport {
                 }
                 if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
                     try {
-                        Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                        md.setValue(value);
-                        if (identifier != null) {
-                            md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
-
+                        List<Metadata> existingMetadata =
+                                (List<Metadata>) logical.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+                        if (existingMetadata.isEmpty()) {
+                            existingMetadata = (List<Metadata>) anchor.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
                         }
-                        if (anchor != null && "anchor".equals(mmo.getDocType())) {
-                            anchor.addMetadata(md);
+                        if (!existingMetadata.isEmpty()) {
+                            existingMetadata.get(0).setValue(value);
                         } else {
-                            logical.addMetadata(md);
+                            Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+                            md.setValue(value);
+                            if (identifier != null) {
+                                md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
+
+                            }
+                            if (anchor != null && "anchor".equals(mmo.getDocType())) {
+                                anchor.addMetadata(md);
+                            } else {
+                                logical.addMetadata(md);
+                            }
                         }
                     } catch (MetadataTypeNotAllowedException e) {
                         log.info(e);
