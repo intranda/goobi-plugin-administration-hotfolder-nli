@@ -291,10 +291,10 @@ public class NLIExcelImport {
                     try {
                         List<Metadata> existingMetadata =
                                 (List<Metadata>) logical.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                        if (existingMetadata.isEmpty()) {
+                        if ((existingMetadata == null || existingMetadata.isEmpty()) && anchor != null) {
                             existingMetadata = (List<Metadata>) anchor.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
                         }
-                        if (!existingMetadata.isEmpty()) {
+                        if (existingMetadata != null && !existingMetadata.isEmpty()) {
                             existingMetadata.get(0).setValue(value);
                         } else {
                             Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
