@@ -7,6 +7,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -167,7 +170,6 @@ public class NLIExcelImport {
             getConfig();
         }
 
-        String timestamp = Long.toString(System.currentTimeMillis());
         ImportObject io = new ImportObject();
         try {
 
@@ -176,6 +178,18 @@ public class NLIExcelImport {
             List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
             Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
             Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
+
+            String imageFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
+            if (StringUtils.isBlank(imageFolder)) {
+                return null;
+            }
+            Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
+
+            if (!Files.exists(imageSourceFolder) || Files.getLastModifiedTime(imageSourceFolder)
+                    .toInstant()
+                    .isAfter(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
+                return null;
+            }
 
             //check mandatory fields:
             try {
@@ -378,20 +392,6 @@ public class NLIExcelImport {
         }
 
         return io;
-    }
-
-    public List<ImportObject> generateFiles(List<Record> records, HotfolderFolder hff) {
-        List<ImportObject> answer = new ArrayList<>();
-
-        for (Record record : records) {
-            ImportObject io = generateFile(record, hff);
-            if (io != null) {
-                answer.add(io);
-            }
-        }
-
-        return answer;
-
     }
 
     private void moveImages(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, String fileName, HotfolderFolder hff) {

@@ -6,6 +6,9 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -109,8 +112,11 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                     try (DirectoryStream<Path> projectsDirStream = Files.newDirectoryStream(templatePath)) {
                         for (Path projectPath : projectsDirStream) {
                             if (Files.isDirectory(projectPath)) {
-
-                                stableBarcodeFolders.add(new HotfolderFolder(projectPath, templatePath.getFileName().toString()));
+                                if (Files.getLastModifiedTime(projectPath)
+                                        .toInstant()
+                                        .isBefore(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
+                                    stableBarcodeFolders.add(new HotfolderFolder(projectPath, templatePath.getFileName().toString()));
+                                }
                             }
                         }
                     }
