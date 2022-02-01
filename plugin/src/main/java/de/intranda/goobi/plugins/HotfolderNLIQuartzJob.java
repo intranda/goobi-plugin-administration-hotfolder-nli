@@ -2,15 +2,15 @@ package de.intranda.goobi.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -18,6 +18,7 @@ import javax.servlet.annotation.WebListener;
 
 import org.apache.commons.configuration.XMLConfiguration;
 import org.goobi.beans.Step;
+import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
@@ -32,6 +33,9 @@ import org.quartz.Trigger;
 import org.quartz.TriggerUtils;
 import org.quartz.impl.StdSchedulerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import de.intranda.goobi.plugins.model.GUIImportResult;
 import de.intranda.goobi.plugins.model.HotfolderFolder;
 import de.intranda.goobi.plugins.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
@@ -76,7 +80,18 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
         try {
             Files.createFile(lockFile);
             List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
-            createProcesses(importFolders);
+            List<ImportObject> imports = createProcesses(importFolders);
+
+            List<GUIImportResult> guiResults = imports.stream()
+                    .map(io -> new GUIImportResult(io))
+                    .collect(Collectors.toList());
+
+            ObjectMapper om = new ObjectMapper();
+
+            try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.CREATE)) {
+                om.writeValue(out, guiResults);
+            }
 
         } catch (IOException e) {
             log.error("Error running NLI hotfolder: {}", e);
@@ -112,11 +127,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                     try (DirectoryStream<Path> projectsDirStream = Files.newDirectoryStream(templatePath)) {
                         for (Path projectPath : projectsDirStream) {
                             if (Files.isDirectory(projectPath)) {
-                                if (Files.getLastModifiedTime(projectPath)
-                                        .toInstant()
-                                        .isBefore(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
-                                    stableBarcodeFolders.add(new HotfolderFolder(projectPath, templatePath.getFileName().toString()));
-                                }
+                                stableBarcodeFolders.add(new HotfolderFolder(projectPath, templatePath.getFileName().toString()));
                             }
                         }
                     }
@@ -127,21 +138,21 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
     }
 
-    private void createProcesses(List<HotfolderFolder> importFolders) throws IOException {
-
+    private List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
+        List<ImportObject> imports = new ArrayList<ImportObject>();
         for (HotfolderFolder hff : importFolders) {
 
             try {
                 File importFile = hff.getImportFile();
                 List<Path> processFolders = hff.getCurrentProcessFolders();
 
-                if (importFile == null || processFolders.isEmpty()) {
+                if (importFile == null) {
+                    log.trace("importFile: {}, processFolders.size(): {}", importFile, processFolders.size());
                     continue;
                 }
 
                 //otherwise:
                 log.info("NLI hotfolder - importing: " + importFile);
-                System.out.println("NLI hotfolder - importing: " + importFile);
 
                 if (excelImport == null) {
                     excelImport = new NLIExcelImport(hff);
@@ -149,11 +160,16 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
                 List<Record> records = excelImport.generateRecordsFromFile(importFile, processFolders);
 
+                int lineNumber = 1;
                 for (Record record : records) {
-
-                    ImportObject io = excelImport.generateFile(record, hff);
-
+                    lineNumber++;
+                    ImportObject io = excelImport.generateFile(importFile.toString(), lineNumber, record, hff);
                     if (io == null) {
+                        continue;
+                    }
+
+                    if (io.getImportReturnValue() != ImportReturnValue.ExportFinished) {
+                        imports.add(io);
                         continue;
                     }
 
@@ -182,14 +198,16 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                         }
                     }
 
+                    imports.add(io);
+
                 }
 
             } catch (Exception e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
-                System.out.println("NLI hotfolder - error: " + e.getMessage());
                 throw e;
             }
         }
+        return imports;
     }
 
     /**

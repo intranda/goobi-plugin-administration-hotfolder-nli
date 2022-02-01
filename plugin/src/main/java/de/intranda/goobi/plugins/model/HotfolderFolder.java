@@ -11,8 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.Getter;
+import lombok.extern.log4j.Log4j2;
 
-
+@Log4j2
 public class HotfolderFolder {
 
     @Getter
@@ -22,7 +23,7 @@ public class HotfolderFolder {
     private String templateName;
 
     private Integer minutesInactivity = 30;
-    
+
     private List<Path> lstProcessFolders;
 
     public HotfolderFolder(Path projectFolder, String templateName) throws IOException {
@@ -51,10 +52,14 @@ public class HotfolderFolder {
         List<Path> lstFoldersToImport = new ArrayList<>();
 
         for (Path barcodePath : lstProcessFolders) {
+            log.trace("looking at {}", barcodePath);
             Instant lastModified = Files.getLastModifiedTime(barcodePath).toInstant();
             Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesInactivity));
             if (lastModified.isBefore(thirtyMinutesAgo)) {
+                log.trace("Adding process folder {} to list", barcodePath);
                 lstFoldersToImport.add(barcodePath);
+            } else {
+                log.trace("Not adding process folder {}. Last modified time {} is not before {}", barcodePath, lastModified, thirtyMinutesAgo);
             }
         }
 
@@ -68,7 +73,7 @@ public class HotfolderFolder {
                 return file;
             }
         }
-        
+
         //otherwise
         return null;
     }

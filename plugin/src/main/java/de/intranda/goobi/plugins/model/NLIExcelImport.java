@@ -42,7 +42,6 @@ import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
-import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.exceptions.DAOException;
 import de.sub.goobi.helper.exceptions.ImportPluginException;
@@ -161,7 +160,7 @@ public class NLIExcelImport {
     }
 
     @SuppressWarnings("unchecked")
-    public ImportObject generateFile(Record record, HotfolderFolder hff) {
+    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff) {
 
         //reset the template if necessary:
         if (hff.getTemplateName() != workflowTitle) {
@@ -171,6 +170,7 @@ public class NLIExcelImport {
         }
 
         ImportObject io = new ImportObject();
+        io.setImportFileName(sourceFile + ":" + rowNumber);
         try {
 
             Object tempObject = record.getObject();
@@ -181,14 +181,25 @@ public class NLIExcelImport {
 
             String imageFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
             if (StringUtils.isBlank(imageFolder)) {
-                return null;
+                io.setErrorMessage("No imageFolder in excel File");
+                io.setImportReturnValue(ImportReturnValue.NoData);
+                return io;
             }
             Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
+            io.setImportFileName(imageSourceFolder.toString());
 
-            if (!Files.exists(imageSourceFolder) || Files.getLastModifiedTime(imageSourceFolder)
+            if (!Files.exists(imageSourceFolder)) {
+                io.setErrorMessage("Image folder does not exist");
+                io.setImportReturnValue(ImportReturnValue.NoData);
+                return io;
+            }
+
+            if (Files.getLastModifiedTime(imageSourceFolder)
                     .toInstant()
                     .isAfter(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
-                return null;
+                io.setErrorMessage("Image folder has beend modified in the last 30 minutes");
+                io.setImportReturnValue(ImportReturnValue.NoData);
+                return io;
             }
 
             //check mandatory fields:
@@ -199,7 +210,9 @@ public class NLIExcelImport {
                         if (col == null || rowMap.get(col) == null || rowMap.get(col).isEmpty()) {
                             io.setErrorMessage("Missing column: " + mmo.getHeaderName());
                             io.setImportReturnValue(ImportReturnValue.NoData);
-                            return null;
+                            io.setErrorMessage("Missing column: " + mmo.getHeaderName());
+                            io.setImportReturnValue(ImportReturnValue.NoData);
+                            return io;
                         }
                     }
                 }
@@ -207,7 +220,7 @@ public class NLIExcelImport {
                 log.error(e);
                 io.setErrorMessage(e.getMessage());
                 io.setImportReturnValue(ImportReturnValue.NoData);
-                return null;
+                return io;
             }
 
             // generate a mets file
@@ -235,9 +248,10 @@ public class NLIExcelImport {
 
                     if (!validRequest) {
                         if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
-                            Helper.setFehlerMeldung("Cannot request catalogue, no identifier column defined");
                             log.error("Cannot request catalogue, no identifier column defined");
-                            return null;
+                            io.setErrorMessage("Cannot request catalogue, no identifier column defined");
+                            io.setImportReturnValue(ImportReturnValue.NoData);
+                            return io;
                         }
 
                         //                        Integer columnNumber = headerOrder.get(config.getIdentifierHeaderName());
@@ -252,7 +266,9 @@ public class NLIExcelImport {
 
                         String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
                         if (StringUtils.isBlank(catalogueIdentifier)) {
-                            return null;
+                            io.setErrorMessage("Cannot request catalogue, no identifier in excel file");
+                            io.setImportReturnValue(ImportReturnValue.NoData);
+                            return io;
                         }
                     }
 
@@ -269,7 +285,7 @@ public class NLIExcelImport {
                     log.error(e);
                     io.setErrorMessage(e.getMessage());
                     io.setImportReturnValue(ImportReturnValue.NoData);
-                    return null;
+                    return io;
                 }
             }
 
@@ -364,7 +380,9 @@ public class NLIExcelImport {
                         dataReplaced = true;
                     } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
                         log.error(e);
-                        return null;
+                        io.setErrorMessage(e.getMessage());
+                        io.setImportReturnValue(ImportReturnValue.NoData);
+                        return io;
                     }
 
                     Path sourceRootFolder = Paths.get(record.getData());
@@ -382,15 +400,17 @@ public class NLIExcelImport {
                             StorageProvider.getInstance().deleteDir(folder.toPath());
                         }
                     }
-                    return null;
+                    io.setErrorMessage("data replaced");
+                    io.setImportReturnValue(ImportReturnValue.NoData);
+                    return io;
                 }
             }
 
         } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException | IOException e) {
             io.setImportReturnValue(ImportReturnValue.WriteError);
             io.setErrorMessage(e.getMessage());
+            return io;
         }
-
         return io;
     }
 

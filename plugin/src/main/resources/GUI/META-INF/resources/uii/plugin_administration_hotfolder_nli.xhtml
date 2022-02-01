@@ -78,6 +78,45 @@
 
 						</div>
 					</div>
+                    
+                    
+                    
+                    <div class="box box-color box-bordered blue" jsf:id="runInfoBox" jsf:rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
+                        <div class="box-title">
+                            <h3>
+                                <i class="fa fa-plug"></i>
+                                <h:outputText value="Last run info" />
+                            </h3>
+                        </div>
+                        <div class="box-content">
+                            <ui:repeat var="folder" value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
+                            <div>
+                                <h4 style="display: inline;">#{folder}</h4>
+                                <button class="btn pull-right" jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
+                                    <h:outputText value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
+                                    <f:ajax render="runInfoBox" />
+                                </button>
+                            </div>
+                            <hr />
+                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
+                                <thead>
+                                    <tr>
+                                        <th>Process</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <ui:repeat var="io" value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
+                                    <tr>
+                                        <td>#{io.importFileName}</td>
+                                        <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
+                                    </tr>
+                                    </ui:repeat>
+                                </tbody>
+                            </table>
+                            </ui:repeat>
+                        </div>
+                    </div>
 				</div>
 			</div>
 		</h:panelGroup>
