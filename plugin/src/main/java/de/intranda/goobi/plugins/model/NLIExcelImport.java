@@ -506,7 +506,7 @@ public class NLIExcelImport {
             String filename = currentData.getFileName().toString();
             if (Files.isDirectory(currentData)) {
                 StorageProvider.getInstance().copyDirectory(currentData, Paths.get(copyToDirectory));
-            } else if (!filename.startsWith(".") && filename.endsWith(".tif")) {
+            } else if (!filename.startsWith(".") && filename.toLowerCase().endsWith(".tif")) {
                 String number = String.format("%04d", iNumber);
                 String newFilename = currentIdentifier + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
                 iNumber++;
