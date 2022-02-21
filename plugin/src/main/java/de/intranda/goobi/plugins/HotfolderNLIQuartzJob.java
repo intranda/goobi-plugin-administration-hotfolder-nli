@@ -157,8 +157,16 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                 if (excelImport == null) {
                     excelImport = new NLIExcelImport(hff);
                 }
-
-                List<Record> records = excelImport.generateRecordsFromFile(importFile, processFolders);
+                List<Record> records;
+                try {
+                    records = excelImport.generateRecordsFromFile(importFile, processFolders);
+                } catch (IOException e) {
+                    ImportObject io = new ImportObject();
+                    io.setImportFileName(importFile.getAbsolutePath());
+                    io.setErrorMessage("Could not read import file");
+                    imports.add(io);
+                    break;
+                }
 
                 int lineNumber = 1;
                 for (Record record : records) {

@@ -69,7 +69,7 @@ public class HotfolderFolder {
     public File getImportFile() throws IOException {
 
         for (File file : projectFolder.toFile().listFiles()) {
-            if (file.getName().endsWith(".xlsx")) {
+            if (file.getName().endsWith(".xlsx") && !file.getName().startsWith("~")) {
                 return file;
             }
         }
