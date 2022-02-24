@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
@@ -188,16 +191,9 @@ public class NLIExcelImport {
             Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
             io.setImportFileName(imageSourceFolder.toString());
 
-            if (!Files.exists(imageSourceFolder)) {
-                io.setErrorMessage("Image folder does not exist");
-                io.setImportReturnValue(ImportReturnValue.NoData);
-                return io;
-            }
-
-            if (Files.getLastModifiedTime(imageSourceFolder)
-                    .toInstant()
-                    .isAfter(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
-                io.setErrorMessage("Image folder has beend modified in the last 30 minutes");
+            Optional<String> errorMessage = checkImageSourceFolder(imageSourceFolder);
+            if (errorMessage.isPresent()) {
+                io.setErrorMessage(errorMessage.get());
                 io.setImportReturnValue(ImportReturnValue.NoData);
                 return io;
             }
@@ -414,6 +410,27 @@ public class NLIExcelImport {
         return io;
     }
 
+    private Optional<String> checkImageSourceFolder(Path imageSourceFolder) throws IOException {
+        if (!Files.exists(imageSourceFolder)) {
+            return Optional.of("Image folder does not exist");
+        }
+        if (Files.getLastModifiedTime(imageSourceFolder)
+                .toInstant()
+                .isAfter(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
+            return Optional.of("Image folder has beend modified in the last 30 minutes");
+        }
+        try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
+            List<Path> allFiles = fileStream.collect(Collectors.toList());
+            if (allFiles.stream().filter(p -> Files.isRegularFile(p)).findAny().isEmpty()) {
+                return Optional.of("Image folder does not contain any regular files");
+            }
+            if (!allFiles.stream().allMatch(p -> Files.isRegularFile(p))) {
+                return Optional.of("Image folder contains folders or symlinks");
+            }
+        }
+        return Optional.empty();
+    }
+
     private void moveImages(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, String fileName, HotfolderFolder hff) {
 
         String imageFolder = rowMap.get(headerOrder.get(config.getProcessHeaderName()));
@@ -438,7 +455,6 @@ public class NLIExcelImport {
                     StorageProvider.getInstance().deleteDir(imageSourceFolder);
                 }
             } catch (IOException e) {
-                System.console().printf(e.getMessage());
                 log.error(e);
             }
 

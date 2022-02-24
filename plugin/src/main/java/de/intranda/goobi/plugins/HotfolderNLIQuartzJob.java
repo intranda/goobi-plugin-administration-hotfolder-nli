@@ -93,7 +93,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                 om.writeValue(out, guiResults);
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error running NLI hotfolder: {}", e);
         } finally {
             try {
