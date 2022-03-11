@@ -26,6 +26,7 @@ public class NLIExcelConfig {
     private String identifierHeaderName;
     private String processHeaderName;
     private String imagesHeaderName;
+    private int sourceImageFolderMofidicationBlockTimout;
 
     private boolean useOpac = false;
     private String opacName;
@@ -51,7 +52,8 @@ public class NLIExcelConfig {
         identifierHeaderName = xmlConfig.getString("/identifierHeaderName", null);
         processHeaderName = xmlConfig.getString("/processHeaderName", null);
         imagesHeaderName = xmlConfig.getString("/imagesHeaderName", null);
-
+        sourceImageFolderMofidicationBlockTimout = xmlConfig.getInt("/sourceImageFolderMofidicationBlockTimout", 30);
+        
         rowHeader = xmlConfig.getInt("/rowHeader", 1);
         rowDataStart = xmlConfig.getInt("/rowDataStart", 2);
         rowDataEnd = xmlConfig.getInt("/rowDataEnd", 20000);

@@ -16,6 +16,8 @@
         <!-- which catalogue to use per record; if missing the default will be used -->
         <opacHeader>UserDefinedB</opacHeader>
         
+        <sourceImageFolderMofidicationBlockTimout>30</sourceImageFolderMofidicationBlockTimout>
+        
         <searchField>12</searchField>
         <!-- define in which row the header is written, usually 1 -->
         <rowHeader>1</rowHeader>

@@ -120,7 +120,7 @@ public class NLIExcelImport {
         }
         Fileformat myRdf = null;
         DocStruct ds = null;
-
+        
         String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
         try {
 
@@ -181,7 +181,12 @@ public class NLIExcelImport {
             try {
                 Path imageSourceFolder = getImageFolderPath(record, hff);
                 io.setImportFileName(imageSourceFolder.toString());
-                checkImageSourceFolder(imageSourceFolder);
+                try {                    
+                    checkImageSourceFolder(imageSourceFolder);
+                } catch(ImportException e) {
+                    log.info("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+                    return null;
+                }
                 checkMandatoryFields(getHeaderOrder(record), getRowMap(record));
             } catch (ImportException e) {
                 io.setErrorMessage(e.getMessage());
@@ -226,11 +231,10 @@ public class NLIExcelImport {
 
             // check if the process exists
             if (replaceExisting) {
-                boolean dataReplaced = false;
                 Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
                 if (existingProcess != null) {
                     try {
-                        writeToExistingProcess(io, ff, importFolder, dataReplaced, existingProcess);
+                        writeToExistingProcess(io, ff, importFolder, existingProcess);
                         io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
                         io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
                         return io;
@@ -253,7 +257,7 @@ public class NLIExcelImport {
         return io;
     }
 
-    private void writeToExistingProcess(ImportObject io, Fileformat ff, Path importFolder, boolean dataReplaced, Process existingProcess)
+    private void writeToExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Process existingProcess)
             throws ImportException {
         try {
             existingProcess.writeMetadataFile(ff);
@@ -311,22 +315,6 @@ public class NLIExcelImport {
         Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
         Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
         return rowMap.get(headerOrder.get(column));
-    }
-
-    public static void main(String[] args) {
-        Record record = new Record();
-        record.setId("id");
-        record.setObject(new Object());
-        Path path = Paths.get(record.getData());
-        boolean exists = Files.exists(path);
-        System.out.println("Path exists " + path + " : " + exists);
-
-        Path sourceImageFolder = Paths.get(path.toString(), "images");
-        Path sourceOcrFolder = Paths.get(path.toString(), "ocr");
-
-        System.out.println("image folder exists " + sourceImageFolder + " : " + Files.exists(sourceImageFolder));
-        System.out.println("ocr folder exists " + sourceOcrFolder + " : " + Files.exists(sourceOcrFolder));
-
     }
 
     private Fileformat createFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
@@ -455,12 +443,7 @@ public class NLIExcelImport {
                     log.info(e);
                     // Metadata is not known or not allowed
                 }
-                //                    // create a default title
-                //                    if (mmo.getRulesetName().equalsIgnoreCase("CatalogIDDigital") && !"anchor".equals(mmo.getDocType())) {
-                //                        fileName = importFolder + File.separator + value + ".xml";
-                //                        io.setProcessTitle(value);
-                //                        io.setMetsFilename(fileName);
-                //                    }
+
             }
 
             if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
@@ -486,7 +469,7 @@ public class NLIExcelImport {
         }
         if (Files.getLastModifiedTime(imageSourceFolder)
                 .toInstant()
-                .isAfter(Instant.now().minus(Duration.of(30, ChronoUnit.MINUTES)))) {
+                .isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
             throw new ImportException("Image folder has beend modified in the last 30 minutes");
         }
         try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
@@ -498,6 +481,11 @@ public class NLIExcelImport {
                 throw new ImportException("Image folder contains folders or symlinks");
             }
         }
+    }
+
+    private Duration getSourceImageFolderModificationBlockTimeout() {
+        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
+        return Duration.of(minutes, ChronoUnit.MINUTES);
     }
 
     /**
@@ -585,7 +573,9 @@ public class NLIExcelImport {
         for (Path currentData : dataInSourceImageFolder) {
             String filename = currentData.getFileName().toString();
             if (Files.isDirectory(currentData)) {
-                StorageProvider.getInstance().copyDirectory(currentData, Paths.get(copyToDirectory));
+                Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
+                Files.createDirectories(targetDir);
+                StorageProvider.getInstance().copyDirectory(currentData, targetDir);
             } else if (!filename.startsWith(".") && filename.toLowerCase().endsWith(".tif")) {
                 String number = String.format("%04d", iNumber);
                 String newFilename = currentIdentifier + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
