@@ -189,7 +189,9 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                                 Step firstOpenStep = processNew.getFirstOpenStep();
                                 hs.CloseStepObjectAutomatic(firstOpenStep);
                                 
-                                excelImport.deleteSourceFiles(hff, record);
+                                if(excelImport.shouldDeleteSourceFiles()) {                                    
+                                    excelImport.deleteSourceFiles(hff, record);
+                                }
                             }
                         } finally {
                             excelImport.deleteTempImportData(io);
@@ -197,7 +199,9 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
                     } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
                         //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
-                        excelImport.deleteSourceFiles(hff, record);
+                        if(excelImport.shouldDeleteSourceFiles()) {                                    
+                            excelImport.deleteSourceFiles(hff, record);
+                        }
                     }
 
                     imports.add(io);

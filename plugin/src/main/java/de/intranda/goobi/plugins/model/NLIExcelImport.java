@@ -280,6 +280,10 @@ public class NLIExcelImport {
             log.error(e.getMessage(), e);
         }
     }
+    
+    public boolean shouldDeleteSourceFiles() {
+        return this.getConfig().isMoveImage();
+    }
 
     public void deleteTempImportData(ImportObject io) {
         //remove temp file
