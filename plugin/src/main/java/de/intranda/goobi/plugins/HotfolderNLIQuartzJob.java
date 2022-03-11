@@ -176,41 +176,35 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                         continue;
                     }
 
-                    if (io.getImportReturnValue() != ImportReturnValue.ExportFinished) {
-                        imports.add(io);
-                        continue;
-                    }
+                    if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
+                        try {
+                            //create new process
+                            org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
+                            org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
+                            if (processNew != null && processNew.getId() != null) {
+                                log.info("NLI hotfolder - created process: " + processNew.getId());
 
-                    //otherwise:
-                    org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
-                    org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
-
-                    if (processNew != null && processNew.getId() != null) {
-                        log.info("NLI hotfolder - created process: " + processNew.getId());
-
-                        //close first step
-                        HelperSchritte hs = new HelperSchritte();
-                        Step firstOpenStep = processNew.getFirstOpenStep();
-                        hs.CloseStepObjectAutomatic(firstOpenStep);
-                    }
-
-                    //remove temp file
-                    if (io.getMetsFilename() != null) {
-                        File file = new File(io.getMetsFilename());
-                        if (file.exists()) {
-                            StorageProvider.getInstance().deleteFile(file.toPath());
+                                //close first step
+                                HelperSchritte hs = new HelperSchritte();
+                                Step firstOpenStep = processNew.getFirstOpenStep();
+                                hs.CloseStepObjectAutomatic(firstOpenStep);
+                                
+                                excelImport.deleteSourceFiles(hff, record);
+                            }
+                        } finally {
+                            excelImport.deleteTempImportData(io);
                         }
-                        File folder = new File(io.getMetsFilename().replace(".xml", ""));
-                        if (folder.exists()) {
-                            StorageProvider.getInstance().deleteDir(folder.toPath());
-                        }
+
+                    } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
+                        //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
+                        excelImport.deleteSourceFiles(hff, record);
                     }
 
                     imports.add(io);
 
                 }
 
-            } catch (Exception e) {
+            } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
                 throw e;
             }
