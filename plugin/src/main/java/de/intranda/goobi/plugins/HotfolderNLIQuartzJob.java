@@ -192,6 +192,9 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                                 if(excelImport.shouldDeleteSourceFiles()) {                                    
                                     excelImport.deleteSourceFiles(hff, record);
                                 }
+                            } else {
+                                io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
+                                io.setImportReturnValue(ImportReturnValue.NoData);
                             }
                         } finally {
                             excelImport.deleteTempImportData(io);
