@@ -207,19 +207,19 @@ public class NLIExcelImport {
                 //Name the process:
                 currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
                 String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
-                currentIdentifier = processName;
 
-                String fileName = nameProcess(currentIdentifier, io);
+                String fileName = nameProcess(processName, io);
                 // write mets file into import folder
                 ff.write(fileName);
 
+//                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
+//                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
+//                    this.currentIdentifier = io.getProcessTitle();
+//                }
+                
                 //copy the image to the import folder
-                importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff);
+                importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
-                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
-                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
-                    this.currentIdentifier = io.getProcessTitle();
-                }
             } catch (ImportException e1) {
                 log.error(e1.toString());
                 io.setErrorMessage(e1.getMessage());
@@ -234,7 +234,7 @@ public class NLIExcelImport {
                 Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
                 if (existingProcess != null) {
                     try {
-                        writeToExistingProcess(io, ff, importFolder, existingProcess);
+                        writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
                         io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
                         io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
                         return io;
@@ -257,11 +257,11 @@ public class NLIExcelImport {
         return io;
     }
 
-    private void writeToExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Process existingProcess)
+    private void writeToExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Process existingProcess, String filenamePrefix)
             throws ImportException {
         try {
             existingProcess.writeMetadataFile(ff);
-            copyImagesIntoProcessFolder(existingProcess, importFolder);
+            copyImagesIntoProcessFolder(existingProcess, importFolder, filenamePrefix);
         } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
             throw new ImportException(e.getMessage(), e);
 
@@ -502,7 +502,7 @@ public class NLIExcelImport {
      * @throws IOException If an error occured copying source files
      * @throws ImportException If no image folder was found
      */
-    private Path copyImagesFromSourceToTempFolder(ImportObject io, Record record, String fileName, HotfolderFolder hff)
+    private Path copyImagesFromSourceToTempFolder(ImportObject io, Record record, String fileName, HotfolderFolder hff, String filenamePrefix)
             throws IOException, ImportException {
 
         Path imageSourceFolder = getImageFolderPath(record, hff);
@@ -514,7 +514,7 @@ public class NLIExcelImport {
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
 
             Path path = Paths.get(foldername, "images", folderNameRule);
-            copyImagesToFolder(imageSourceFolder, path.toString());
+            copyImagesToFolder(imageSourceFolder, path.toString(), filenamePrefix);
             return Paths.get(foldername);
         } else {
             throw new ImportException("No images to copy: Image source folder " + imageSourceFolder + " does not exist");
@@ -530,7 +530,7 @@ public class NLIExcelImport {
         return fileName;
     }
 
-    private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder) throws ImportException {
+    private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder, String filenamePrefix) throws ImportException {
         if (StorageProvider.getInstance().isFileExists(sourceRootFolder)) {
             Path sourceImageFolder = Paths.get(sourceRootFolder.toString(), "images");
             Path sourceOcrFolder = Paths.get(sourceRootFolder.toString(), "ocr");
@@ -539,7 +539,7 @@ public class NLIExcelImport {
                 try {
                     String copyToDirectory = existingProcess.getImagesDirectory();
 
-                    copyImagesToFolder(sourceImageFolder, copyToDirectory);
+                    copyImagesToFolder(sourceImageFolder, copyToDirectory, filenamePrefix);
                 } catch (IOException | InterruptedException | SwapException | DAOException e) {
                     throw new ImportException(e.getMessage(), e);
                 }
@@ -567,7 +567,15 @@ public class NLIExcelImport {
         }
     }
 
-    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory) throws IOException {
+    /**
+     * 
+     * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif suffix are being copied
+     * @param copyToDirectory   The directory into which the files/subdirectories are to be copied
+     * @param filenamePrefix    A prefix for the file names of .tif files in the 'copyToDirectory'. If filenamePrefix is blank, the image 
+     * files are copied without name change. Otherwise they are named <filenamePrefix>_i.tif in the target folder, where i is an incrementing integer starting at value 1
+     * @throws IOException
+     */
+    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String filenamePrefix) throws IOException {
 
         List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceImageFolder.toString());
         dataInSourceImageFolder.sort(Comparator.comparing(o -> o.toFile().getName().toUpperCase()));
@@ -581,8 +589,11 @@ public class NLIExcelImport {
                 Files.createDirectories(targetDir);
                 StorageProvider.getInstance().copyDirectory(currentData, targetDir);
             } else if (!filename.startsWith(".") && filename.toLowerCase().endsWith(".tif")) {
-                String number = String.format("%04d", iNumber);
-                String newFilename = currentIdentifier + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
+                String newFilename = filename;
+                if(StringUtils.isNotBlank(filenamePrefix)) {                    
+                    String number = String.format("%04d", iNumber);
+                    newFilename = filenamePrefix + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
+                }
                 iNumber++;
                 StorageProvider.getInstance().copyFile(currentData, Paths.get(copyToDirectory, newFilename));
             }

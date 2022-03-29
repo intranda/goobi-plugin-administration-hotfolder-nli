@@ -79,15 +79,17 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
         try {
             Files.createFile(lockFile);
+            log.info("NLI hotfolder: Starting import run");
             List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
+            log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
             List<ImportObject> imports = createProcesses(importFolders);
-
+            log.info("NLI hotfolder: Created processes. " + imports.size() + "import objects were created");
             List<GUIImportResult> guiResults = imports.stream()
                     .map(io -> new GUIImportResult(io))
                     .collect(Collectors.toList());
 
             ObjectMapper om = new ObjectMapper();
-
+            log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
             try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE)) {
                 om.writeValue(out, guiResults);
@@ -95,7 +97,10 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
         } catch (Exception e) {
             log.error("Error running NLI hotfolder: {}", e);
+        } catch (Throwable e) {
+            log.error("Unexpected error running NLI hotfolder: {}", e);
         } finally {
+            log.info("NLI hotfolder: Done with import run. Deleting lockFile");
             try {
                 Files.deleteIfExists(lockFile);
             } catch (IOException e) {
