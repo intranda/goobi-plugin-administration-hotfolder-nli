@@ -219,6 +219,8 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
                 throw e;
+            } catch(NullPointerException e) {
+                log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
             }
         }
         return imports;
