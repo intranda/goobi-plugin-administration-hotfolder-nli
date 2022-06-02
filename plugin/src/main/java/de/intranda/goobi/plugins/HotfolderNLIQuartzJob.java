@@ -140,7 +140,6 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             }
         }
         return stableBarcodeFolders;
-
     }
 
     private List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
@@ -219,7 +218,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
                 throw e;
-            } catch(NullPointerException e) {
+            } catch(NullPointerException | IllegalStateException e) {
                 log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
             }
         }

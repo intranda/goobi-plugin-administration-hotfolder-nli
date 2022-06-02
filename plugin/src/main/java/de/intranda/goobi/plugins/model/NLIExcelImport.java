@@ -184,7 +184,7 @@ public class NLIExcelImport {
                 try {                    
                     checkImageSourceFolder(imageSourceFolder);
                 } catch(ImportException e) {
-                    log.info("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+                    log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
                     return null;
                 }
                 checkMandatoryFields(getHeaderOrder(record), getRowMap(record));
@@ -752,6 +752,11 @@ public class NLIExcelImport {
         if (config == null) {
             config = loadConfig(workflowTitle);
             template = ProcessManager.getProcessByTitle(workflowTitle);
+            if(template == null) {
+                throw new IllegalStateException("Error getting config for template '" + workflowTitle + "'. No such process found");
+            } else if(template.getRegelsatz() == null) {
+                throw new IllegalStateException("No ruleset found for template " + template.getTitel());
+            }
             prefs = template.getRegelsatz().getPreferences();
         }
 
