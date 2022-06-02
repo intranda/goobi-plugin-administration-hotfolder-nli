@@ -569,10 +569,10 @@ public class NLIExcelImport {
 
     /**
      * 
-     * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif suffix are being copied
+     * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif, .pdf or .epux suffix are being copied
      * @param copyToDirectory   The directory into which the files/subdirectories are to be copied
      * @param filenamePrefix    A prefix for the file names of .tif files in the 'copyToDirectory'. If filenamePrefix is blank, the image 
-     * files are copied without name change. Otherwise they are named <filenamePrefix>_i.tif in the target folder, where i is an incrementing integer starting at value 1
+     * files are copied without name change. Otherwise they are named <filenamePrefix>_i.tif/pdf/epub in the target folder, where i is an incrementing integer starting at value 1
      * @throws IOException
      */
     private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String filenamePrefix) throws IOException {
@@ -588,7 +588,7 @@ public class NLIExcelImport {
                 Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
                 Files.createDirectories(targetDir);
                 StorageProvider.getInstance().copyDirectory(currentData, targetDir);
-            } else if (!filename.startsWith(".") && filename.toLowerCase().endsWith(".tif")) {
+            } else if (!filename.startsWith(".") && filename.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
                 String newFilename = filename;
                 if(StringUtils.isNotBlank(filenamePrefix)) {                    
                     String number = String.format("%04d", iNumber);
@@ -622,7 +622,7 @@ public class NLIExcelImport {
     //    }
 
     //    @Override
-    public List<Record> generateRecordsFromFile(File file, List<Path> processFolders) throws IOException {
+    public List<Record> generateRecordsFromFile(File file) throws IOException {
 
         config = null;
         List<Record> recordList = new ArrayList<>();

@@ -164,7 +164,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                 }
                 List<Record> records;
                 try {
-                    records = excelImport.generateRecordsFromFile(importFile, processFolders);
+                    records = excelImport.generateRecordsFromFile(importFile);
                 } catch (IOException e) {
                     ImportObject io = new ImportObject();
                     io.setImportFileName(importFile.getAbsolutePath());
