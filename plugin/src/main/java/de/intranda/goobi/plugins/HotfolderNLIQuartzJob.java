@@ -50,6 +50,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
     private static String title = "intranda_administration_hotfolder_nli";
 
+    //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
 
     /**
@@ -161,6 +162,7 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
                 if (excelImport == null) {
                     excelImport = new NLIExcelImport(hff);
                 }
+                excelImport.setWorkflowTitle(hff.getTemplateName());
                 List<Record> records;
                 try {
                     records = excelImport.generateRecordsFromFile(importFile);
