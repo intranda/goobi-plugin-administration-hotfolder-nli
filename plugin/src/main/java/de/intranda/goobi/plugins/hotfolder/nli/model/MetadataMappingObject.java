@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.model;
+package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import lombok.Data;
 

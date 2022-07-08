@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins;
+package de.intranda.goobi.plugins.hotfolder.nli;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,9 +35,9 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.intranda.goobi.plugins.model.GUIImportResult;
-import de.intranda.goobi.plugins.model.HotfolderFolder;
-import de.intranda.goobi.plugins.model.NLIExcelImport;
+import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
+import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
+import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.HelperSchritte;
 import de.sub.goobi.helper.StorageProvider;
@@ -271,4 +271,11 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
         }
     }
 
+    public static void main(String[] args) throws IOException {
+        File file = new File("/home/florian/Downloads/Digital_vienna.xlsx");
+        NLIExcelImport importer = new NLIExcelImport(null);
+        java.util.List<Record> records = importer.generateRecordsFromFile(file);
+        System.out.println("Number of records: " + records.size());
+    }
+    
 }

@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins;
+package de.intranda.goobi.plugins.hotfolder.nli;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.intranda.goobi.plugins.model.GUIImportResult;
+import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.sub.goobi.config.ConfigPlugins;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;

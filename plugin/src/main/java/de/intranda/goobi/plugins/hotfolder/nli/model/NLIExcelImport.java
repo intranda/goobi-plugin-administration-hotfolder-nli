@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.model;
+package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,7 +43,7 @@ import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
-import de.intranda.goobi.plugins.model.exceptions.ImportException;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.StorageProvider;
@@ -671,7 +671,6 @@ public class NLIExcelImport {
             while (rowIterator.hasNext() && rowCounter < rowDataEnd) {
                 rowCounter = addRowProcess(recordList, idColumn, headerOrder, rowIterator, rowCounter);
             }
-
         } catch (IOException e) {
             log.error(e);
             throw e;
@@ -825,4 +824,6 @@ public class NLIExcelImport {
         Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
         return rowMap;
     }
+    
+
 }

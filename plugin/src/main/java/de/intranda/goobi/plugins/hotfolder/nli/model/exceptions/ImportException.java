@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.model.exceptions;
+package de.intranda.goobi.plugins.hotfolder.nli.model.exceptions;
 
 public class ImportException extends Exception {
 
