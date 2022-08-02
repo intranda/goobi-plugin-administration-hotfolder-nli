@@ -47,7 +47,6 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.StorageProvider;
-import de.sub.goobi.helper.exceptions.DAOException;
 import de.sub.goobi.helper.exceptions.ImportPluginException;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
@@ -120,7 +119,7 @@ public class NLIExcelImport {
         }
         Fileformat myRdf = null;
         DocStruct ds = null;
-        
+
         String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
         try {
 
@@ -181,9 +180,9 @@ public class NLIExcelImport {
             try {
                 Path imageSourceFolder = getImageFolderPath(record, hff);
                 io.setImportFileName(imageSourceFolder.toString());
-                try {                    
+                try {
                     checkImageSourceFolder(imageSourceFolder);
-                } catch(ImportException e) {
+                } catch (ImportException e) {
                     log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
                     return null;
                 }
@@ -212,11 +211,11 @@ public class NLIExcelImport {
                 // write mets file into import folder
                 ff.write(fileName);
 
-//                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
-//                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
-//                    this.currentIdentifier = io.getProcessTitle();
-//                }
-                
+                //                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
+                //                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
+                //                    this.currentIdentifier = io.getProcessTitle();
+                //                }
+
                 //copy the image to the import folder
                 importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
@@ -262,7 +261,7 @@ public class NLIExcelImport {
         try {
             existingProcess.writeMetadataFile(ff);
             copyImagesIntoProcessFolder(existingProcess, importFolder, filenamePrefix);
-        } catch (WriteException | PreferencesException | IOException | InterruptedException | SwapException | DAOException e) {
+        } catch (WriteException | PreferencesException | IOException | SwapException e) {
             throw new ImportException(e.getMessage(), e);
 
         }
@@ -280,7 +279,7 @@ public class NLIExcelImport {
             log.error(e.getMessage(), e);
         }
     }
-    
+
     public boolean shouldDeleteSourceFiles() {
         return this.getConfig().isMoveImage();
     }
@@ -471,9 +470,7 @@ public class NLIExcelImport {
         if (!Files.exists(imageSourceFolder)) {
             throw new ImportException("Image folder does not exist");
         }
-        if (Files.getLastModifiedTime(imageSourceFolder)
-                .toInstant()
-                .isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
+        if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
             throw new ImportException("Image folder has beend modified in the last 30 minutes");
         }
         try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
@@ -540,7 +537,7 @@ public class NLIExcelImport {
                     String copyToDirectory = existingProcess.getImagesDirectory();
 
                     copyImagesToFolder(sourceImageFolder, copyToDirectory, filenamePrefix);
-                } catch (IOException | InterruptedException | SwapException | DAOException e) {
+                } catch (IOException | SwapException e) {
                     throw new ImportException(e.getMessage(), e);
                 }
             }
@@ -552,13 +549,13 @@ public class NLIExcelImport {
                     if (Files.isRegularFile(currentData)) {
                         try {
                             copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
-                        } catch (IOException | SwapException | DAOException | InterruptedException e) {
+                        } catch (IOException | SwapException e) {
                             log.error(e);
                         }
                     } else {
                         try {
                             FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
-                        } catch (IOException | SwapException | DAOException | InterruptedException e) {
+                        } catch (IOException | SwapException e) {
                             log.error(e);
                         }
                     }
@@ -570,9 +567,10 @@ public class NLIExcelImport {
     /**
      * 
      * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif, .pdf or .epux suffix are being copied
-     * @param copyToDirectory   The directory into which the files/subdirectories are to be copied
-     * @param filenamePrefix    A prefix for the file names of .tif files in the 'copyToDirectory'. If filenamePrefix is blank, the image 
-     * files are copied without name change. Otherwise they are named <filenamePrefix>_i.tif/pdf/epub in the target folder, where i is an incrementing integer starting at value 1
+     * @param copyToDirectory The directory into which the files/subdirectories are to be copied
+     * @param filenamePrefix A prefix for the file names of .tif files in the 'copyToDirectory'. If filenamePrefix is blank, the image files are
+     *            copied without name change. Otherwise they are named <filenamePrefix>_i.tif/pdf/epub in the target folder, where i is an
+     *            incrementing integer starting at value 1
      * @throws IOException
      */
     private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String filenamePrefix) throws IOException {
@@ -590,7 +588,7 @@ public class NLIExcelImport {
                 StorageProvider.getInstance().copyDirectory(currentData, targetDir);
             } else if (!filename.startsWith(".") && filename.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
                 String newFilename = filename;
-                if(StringUtils.isNotBlank(filenamePrefix)) {                    
+                if (StringUtils.isNotBlank(filenamePrefix)) {
                     String number = String.format("%04d", iNumber);
                     newFilename = filenamePrefix + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
                 }
@@ -751,9 +749,9 @@ public class NLIExcelImport {
         if (config == null) {
             config = loadConfig(workflowTitle);
             template = ProcessManager.getProcessByTitle(workflowTitle);
-            if(template == null) {
+            if (template == null) {
                 throw new IllegalStateException("Error getting config for template '" + workflowTitle + "'. No such process found");
-            } else if(template.getRegelsatz() == null) {
+            } else if (template.getRegelsatz() == null) {
                 throw new IllegalStateException("No ruleset found for template " + template.getTitel());
             }
             prefs = template.getRegelsatz().getPreferences();
@@ -824,6 +822,5 @@ public class NLIExcelImport {
         Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
         return rowMap;
     }
-    
 
 }
