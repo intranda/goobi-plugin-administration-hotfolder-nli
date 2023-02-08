@@ -1,13 +1,10 @@
 <config_plugin>
     <!-- hotfolder -->
     <hotfolderPath>/opt/digiverso/import/hotfolder</hotfolderPath>
-    <schedule>
-    	<cronExpression>0 /5 * * * ?</cronExpression>
-    </schedule>
    
     <config>
         <!-- Use this config for the following workflow template: -->
-        <template>NLI-template</template>
+        <template>*</template>
         <!-- publication type to create -->
         <publicationType>Manuscript</publicationType>
         <!-- which digital collection to use -->
@@ -18,11 +15,6 @@
         <opacName>arc</opacName>
         <!-- which catalogue to use per record; if missing the default will be used -->
         <opacHeader>UserDefinedB</opacHeader>
-        
-        <schedule>
-        	<start>19</start>
-        	<end>7</end>
-        </schedule>
         
         <sourceImageFolderMofidicationBlockTimout>30</sourceImageFolderMofidicationBlockTimout>
         

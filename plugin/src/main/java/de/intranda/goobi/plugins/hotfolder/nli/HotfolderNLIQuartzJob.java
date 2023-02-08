@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,12 +18,15 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
+import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
+import org.apache.commons.lang3.StringUtils;
 import org.goobi.beans.Step;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
+import org.quartz.CronTrigger;
 import org.quartz.Job;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
@@ -83,10 +88,28 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             log.info("NLI hotfolder: Starting import run");
             List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
             log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
+            
+            List<String> ignoredTemplates = new ArrayList<>();
+            importFolders = importFolders.stream().filter(folder -> {
+                SubnodeConfiguration templateConfig = NLIExcelImport.getTemplateConfig(folder.getTemplateName());
+                Integer startTime = templateConfig.getInt("schedule/start", 0);
+                Integer endTime = templateConfig.getInt("schedule/end", 0);
+                int currentHour = LocalDateTime.now().getHour();
+                boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+                if(!run) {    
+                    ignoredTemplates.add(folder.getTemplateName());
+                }
+                return run;
+            }).collect(Collectors.toList());
+            
+            ignoredTemplates.stream().distinct().forEach(template -> {
+                log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template);
+            });
+            
             List<ImportObject> imports = createProcesses(importFolders);
             log.info("NLI hotfolder: Created processes. " + imports.size() + "import objects were created");
             List<GUIImportResult> guiResults = imports.stream()
-                    .map(io -> new GUIImportResult(io))
+                    .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
             ObjectMapper om = new ObjectMapper();
@@ -109,6 +132,22 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
             }
         }
 
+    }
+
+    boolean shouldRunAtTime(int currentHour, Integer startTime, Integer endTime) {
+        if(startTime > 0 && endTime > 0) {
+            if(startTime < endTime) {
+                return currentHour >= startTime && currentHour < endTime;
+            } else {
+                return currentHour >= startTime || currentHour < endTime;
+            }
+        } else if(startTime > 0) {
+            return currentHour >= startTime;
+        } else if(endTime > 0) {
+            return currentHour < endTime;
+        } else {
+            return true;
+        }
     }
 
     /**
@@ -234,6 +273,9 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         log.info("Starting 'NLI hotfolder' scheduler");
         try {
+            XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
+            String cronExpression = config.getString("schedule.cronExpresson", "0 /5 * * * ?");
+            
             // get default scheduler
             SchedulerFactory schedFact = new StdSchedulerFactory();
             Scheduler sched = schedFact.getScheduler();
@@ -244,13 +286,19 @@ public class HotfolderNLIQuartzJob implements Job, ServletContextListener {
 
             // create new job 
             JobDetail jobDetail = new JobDetail("NLI hotfolder", "Goobi Admin Plugin", HotfolderNLIQuartzJob.class);
-            Trigger trigger = TriggerUtils.makeMinutelyTrigger(5);
+            
+
+            CronTrigger trigger = new CronTrigger();
             trigger.setName("NLI hotfolder");
-            trigger.setStartTime(startTime.getTime());
+            trigger.setCronExpression(cronExpression);
+            
+            //            Trigger trigger = TriggerUtils.makeMinutelyTrigger(5);
+            //            trigger.setName("NLI hotfolder");
+            //            trigger.setStartTime(startTime.getTime());
 
             // register job and trigger at scheduler
             sched.scheduleJob(jobDetail, trigger);
-        } catch (SchedulerException e) {
+        } catch (SchedulerException | ParseException e) {
             log.error("Error while executing the scheduler", e);
         }
     }

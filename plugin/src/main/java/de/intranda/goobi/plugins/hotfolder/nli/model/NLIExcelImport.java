@@ -103,6 +103,11 @@ public class NLIExcelImport {
             this.workflowTitle = hff.getTemplateName();
         }
     }
+    
+    public NLIExcelImport(HotfolderFolder hff, NLIExcelConfig config) {
+        this(hff);
+        this.config = config;
+    }
 
     private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder, String catalogue)
             throws ImportPluginException {
@@ -781,6 +786,19 @@ public class NLIExcelImport {
         //            e1.printStackTrace();
         //        }
 
+        SubnodeConfiguration myconfig = getTemplateConfig(workflowTitle);
+
+        if (myconfig != null) {
+            replaceExisting = myconfig.getBoolean("replaceExistingProcesses", false);
+            moveFiles = myconfig.getBoolean("moveFiles", false);
+        }
+
+        NLIExcelConfig config = new NLIExcelConfig(myconfig);
+
+        return config;
+    }
+
+    public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 
         //        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
@@ -794,15 +812,7 @@ public class NLIExcelImport {
         } catch (IllegalArgumentException e) {
             myconfig = xmlConfig.configurationAt("//config[./template = '*']");
         }
-
-        if (myconfig != null) {
-            replaceExisting = myconfig.getBoolean("replaceExistingProcesses", false);
-            moveFiles = myconfig.getBoolean("moveFiles", false);
-        }
-
-        NLIExcelConfig config = new NLIExcelConfig(myconfig);
-
-        return config;
+        return myconfig;
     }
 
     private Map<String, Integer> getHeaderOrder(Record record) {
