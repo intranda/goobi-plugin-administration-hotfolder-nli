@@ -30,13 +30,13 @@ public class HotfolderNliPluginTest {
         config = new NLIExcelConfig(subConfig);
     }
     
-    @Test
+//    @Test
     public void testVersion() throws IOException {
         String s = "xyz";
         assertNotNull(s);
     }
 
-    @Test
+//    @Test
     public void test() throws IOException {
         File file = new File("/home/florian/Downloads/Digital_vienna.xlsx");
         NLIExcelImport importer = new NLIExcelImport(null, this.config);
