@@ -16,22 +16,26 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
+import org.apache.commons.lang3.StringUtils;
 import org.goobi.beans.Step;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.flow.helper.JobCreation;
-import org.goobi.production.flow.jobs.AbstractGoobiJob;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.quartz.CronTrigger;
+import org.quartz.Job;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
+import org.quartz.Trigger;
+import org.quartz.TriggerUtils;
 import org.quartz.impl.StdSchedulerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,20 +45,18 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.HelperSchritte;
+import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
 
+@WebListener
 @Log4j2
-public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletContextListener {
+public class HotfolderNLIQuartzJobOld implements Job, ServletContextListener {
+
     private static String title = "intranda_administration_hotfolder_nli";
 
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
-
-    @Override
-    public String getJobName() {
-        return "HotfolderNLIQuartzJob";
-    }
 
     /**
      * Quartz-Job implementation
@@ -86,8 +88,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
             log.info("NLI hotfolder: Starting import run");
             List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
             log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
-
-            // check schedule to determine whether templates should be ignored or not
+            
             List<String> ignoredTemplates = new ArrayList<>();
             importFolders = importFolders.stream().filter(folder -> {
                 SubnodeConfiguration templateConfig = NLIExcelImport.getTemplateConfig(folder.getTemplateName());
@@ -95,24 +96,22 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
                 Integer endTime = templateConfig.getInt("schedule/end", 0);
                 int currentHour = LocalDateTime.now().getHour();
                 boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-                if (!run) {
+                if(!run) {    
                     ignoredTemplates.add(folder.getTemplateName());
                 }
                 return run;
             }).collect(Collectors.toList());
-
+            
             ignoredTemplates.stream().distinct().forEach(template -> {
                 log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template);
             });
-
-            // create an ImportObject instance for every folder in the importFolders
+            
             List<ImportObject> imports = createProcesses(importFolders);
             log.info("NLI hotfolder: Created processes. " + imports.size() + "import objects were created");
             List<GUIImportResult> guiResults = imports.stream()
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
-            // write result to a json file located at the hotfolderPath
             ObjectMapper om = new ObjectMapper();
             log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
             try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
@@ -135,30 +134,16 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
 
     }
 
-    /**
-     * returns true for the following cases: 
-     * 1). 0 < startTime <= currentHour < endTime
-     * 2). 0 < endTime <= startTime <= currentHour
-     * 3). 0 < currentHour < endTime <= startTime
-     * 4). endTime <= 0 < startTime <= currentHour
-     * 5). startTime <= 0 < currentHour < endTime
-     * 6). startTime <= 0 && endTime <= 0
-     * 
-     * @param currentHour
-     * @param startTime
-     * @param endTime
-     * @return
-     */
     boolean shouldRunAtTime(int currentHour, Integer startTime, Integer endTime) {
-        if (startTime > 0 && endTime > 0) {
-            if (startTime < endTime) {
+        if(startTime > 0 && endTime > 0) {
+            if(startTime < endTime) {
                 return currentHour >= startTime && currentHour < endTime;
             } else {
                 return currentHour >= startTime || currentHour < endTime;
             }
-        } else if (startTime > 0) {
+        } else if(startTime > 0) {
             return currentHour >= startTime;
-        } else if (endTime > 0) {
+        } else if(endTime > 0) {
             return currentHour < endTime;
         } else {
             return true;
@@ -225,69 +210,60 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
                     io.setImportFileName(importFile.getAbsolutePath());
                     io.setErrorMessage("Could not read import file");
                     imports.add(io);
-                    //                    break;
-                    return imports;
+                    break;
                 }
 
                 int lineNumber = 1;
-                String importFilePath = importFile.toString();
                 for (Record record : records) {
                     lineNumber++;
-                    ImportObject io = prepareImportObject(importFilePath, lineNumber, record, hff);
-                    if (io != null) {
-                        imports.add(io);
+                    ImportObject io = excelImport.generateFile(importFile.toString(), lineNumber, record, hff);
+                    if (io == null) {
+                        continue;
                     }
+
+                    if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
+                        try {
+                            //create new process
+                            org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
+                            org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
+                            if (processNew != null && processNew.getId() != null) {
+                                log.info("NLI hotfolder - created process: " + processNew.getId());
+
+                                //close first step
+                                HelperSchritte hs = new HelperSchritte();
+                                Step firstOpenStep = processNew.getFirstOpenStep();
+                                hs.CloseStepObjectAutomatic(firstOpenStep);
+                                
+                                if(excelImport.shouldDeleteSourceFiles()) {                                    
+                                    excelImport.deleteSourceFiles(hff, record);
+                                }
+                            } else {
+                                io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
+                                io.setImportReturnValue(ImportReturnValue.NoData);
+                            }
+                        } finally {
+                            excelImport.deleteTempImportData(io);
+                        }
+
+                    } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
+                        //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
+                        if(excelImport.shouldDeleteSourceFiles()) {                                    
+                            excelImport.deleteSourceFiles(hff, record);
+                        }
+                    }
+
+                    imports.add(io);
 
                 }
 
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
                 throw e;
-            } catch (NullPointerException | IllegalStateException e) {
+            } catch(NullPointerException | IllegalStateException e) {
                 log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
             }
         }
         return imports;
-    }
-
-    private ImportObject prepareImportObject(String importFilePath, int lineNumber, Record record, HotfolderFolder hff) {
-        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff);
-        if (io == null) {
-            return null;
-        }
-
-        if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
-            try {
-                //create new process
-                org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
-                org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
-                if (processNew != null && processNew.getId() != null) {
-                    log.info("NLI hotfolder - created process: " + processNew.getId());
-
-                    //close first step
-                    HelperSchritte hs = new HelperSchritte();
-                    Step firstOpenStep = processNew.getFirstOpenStep();
-                    hs.CloseStepObjectAutomatic(firstOpenStep);
-
-                    if (excelImport.shouldDeleteSourceFiles()) {
-                        excelImport.deleteSourceFiles(hff, record);
-                    }
-                } else {
-                    io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
-                    io.setImportReturnValue(ImportReturnValue.NoData);
-                }
-            } finally {
-                excelImport.deleteTempImportData(io);
-            }
-
-        } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
-            //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
-            if (excelImport.shouldDeleteSourceFiles()) {
-                excelImport.deleteSourceFiles(hff, record);
-            }
-        }
-
-        return io;
     }
 
     /**
@@ -299,7 +275,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
         try {
             XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
             String cronExpression = config.getString("schedule.cronExpresson", "0 /5 * * * ?");
-
+            
             // get default scheduler
             SchedulerFactory schedFact = new StdSchedulerFactory();
             Scheduler sched = schedFact.getScheduler();
@@ -310,11 +286,12 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
 
             // create new job 
             JobDetail jobDetail = new JobDetail("NLI hotfolder", "Goobi Admin Plugin", HotfolderNLIQuartzJob.class);
+            
 
             CronTrigger trigger = new CronTrigger();
             trigger.setName("NLI hotfolder");
             trigger.setCronExpression(cronExpression);
-
+            
             //            Trigger trigger = TriggerUtils.makeMinutelyTrigger(5);
             //            trigger.setName("NLI hotfolder");
             //            trigger.setStartTime(startTime.getTime());
@@ -341,4 +318,12 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob implements ServletCo
             log.error("Error while stopping the job", e);
         }
     }
+
+    public static void main(String[] args) throws IOException {
+        File file = new File("/home/florian/Downloads/Digital_vienna.xlsx");
+        NLIExcelImport importer = new NLIExcelImport(null);
+        java.util.List<Record> records = importer.generateRecordsFromFile(file);
+        System.out.println("Number of records: " + records.size());
+    }
+    
 }
