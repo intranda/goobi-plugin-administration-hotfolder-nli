@@ -47,7 +47,6 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.StorageProvider;
-import de.sub.goobi.helper.exceptions.ImportPluginException;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
@@ -372,38 +371,34 @@ public class NLIExcelImport {
             logical = digitalDocument.createDocStruct(logicalType);
             digitalDocument.setLogicalDocStruct(logical);
         } else {
-            try {
-                boolean validRequest = false;
-                for (MetadataMappingObject mmo : config.getMetadataList()) {
-                    if (StringUtils.isNotBlank(mmo.getSearchField()) && headerOrder.get(mmo.getHeaderName()) != null) {
-                        validRequest = true;
-                        break;
-                    }
+            boolean validRequest = false;
+            for (MetadataMappingObject mmo : config.getMetadataList()) {
+                if (StringUtils.isNotBlank(mmo.getSearchField()) && headerOrder.get(mmo.getHeaderName()) != null) {
+                    validRequest = true;
+                    break;
                 }
-
-                if (!validRequest) {
-                    if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
-                        throw new ImportException("Cannot request catalogue, no identifier column defined");
-                    }
-
-                    String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
-                    if (StringUtils.isBlank(catalogueIdentifier)) {
-                        throw new ImportException("Cannot request catalogue, no identifier in excel file");
-                    }
-                }
-
-                String catalogue = config.getOpacName();
-                ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
-                digitalDocument = ff.getDigitalDocument();
-                logical = digitalDocument.getLogicalDocStruct();
-                if (logical.getType().isAnchor()) {
-                    anchor = logical;
-                    logical = anchor.getAllChildren().get(0);
-                }
-
-            } catch (Exception e) {
-                throw new ImportException(e.getMessage(), e);
             }
+
+            if (!validRequest) {
+                if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
+                    throw new ImportException("Cannot request catalogue, no identifier column defined");
+                }
+
+                String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+                if (StringUtils.isBlank(catalogueIdentifier)) {
+                    throw new ImportException("Cannot request catalogue, no identifier in excel file");
+                }
+            }
+
+            String catalogue = config.getOpacName();
+            ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
+            digitalDocument = ff.getDigitalDocument();
+            logical = digitalDocument.getLogicalDocStruct();
+            if (logical.getType().isAnchor()) {
+                anchor = logical;
+                logical = anchor.getAllChildren().get(0);
+            }
+
         }
 
         DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
@@ -424,7 +419,7 @@ public class NLIExcelImport {
     }
 
     private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder, String catalogue)
-            throws ImportPluginException {
+            throws ImportException {
         IOpacPlugin myImportOpac = null;
         ConfigOpacCatalogue coc = null;
         for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(workflowTitle)) {
@@ -434,7 +429,7 @@ public class NLIExcelImport {
             }
         }
         if (myImportOpac == null) {
-            throw new ImportPluginException("Opac plugin for catalogue " + catalogue + " not found. Abort.");
+            throw new ImportException("Opac plugin for catalogue " + catalogue + " not found. Abort.");
         }
         Fileformat myRdf = null;
         DocStruct ds = null;
@@ -444,11 +439,11 @@ public class NLIExcelImport {
 
             myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
             if (myRdf == null) {
-                throw new ImportPluginException("Could not import record " + identifier
+                throw new ImportException("Could not import record " + identifier
                         + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
             }
         } catch (Exception e1) {
-            throw new ImportPluginException("Could not import record " + identifier
+            throw new ImportException("Could not import record " + identifier
                     + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
         }
 
@@ -456,13 +451,13 @@ public class NLIExcelImport {
             ds = myRdf.getDigitalDocument().getLogicalDocStruct();
             if (ds.getType().isAnchor()) {
                 if (ds.getAllChildren() == null || ds.getAllChildren().isEmpty()) {
-                    throw new ImportPluginException(
+                    throw new ImportException(
                             "Could not import record " + identifier + ". Found anchor file, but no children. Try to import the child record.");
                 }
                 ds = ds.getAllChildren().get(0);
             }
         } catch (PreferencesException e1) {
-            throw new ImportPluginException("Could not import record " + identifier
+            throw new ImportException("Could not import record " + identifier
                     + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
         }
 
