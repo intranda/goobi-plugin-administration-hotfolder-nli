@@ -594,6 +594,7 @@ public class NLIExcelImport {
             throw new ImportException("No imageFolder in excel File");
         }
         Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
+
         return imageSourceFolder;
     }
 
@@ -603,6 +604,7 @@ public class NLIExcelImport {
         List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
         Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
         Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
+
         return rowMap.get(headerOrder.get(column));
     }
 
@@ -611,9 +613,9 @@ public class NLIExcelImport {
         try {
             existingProcess.writeMetadataFile(ff);
             copyImagesIntoProcessFolder(existingProcess, importFolder, filenamePrefix);
+
         } catch (WriteException | PreferencesException | IOException | SwapException e) {
             throw new ImportException(e.getMessage(), e);
-
         }
     }
 
@@ -625,8 +627,8 @@ public class NLIExcelImport {
             if (StorageProvider.getInstance().isDirectory(sourceImageFolder)) {
                 try {
                     String copyToDirectory = existingProcess.getImagesDirectory();
-
                     copyImagesToFolder(sourceImageFolder, copyToDirectory, filenamePrefix);
+
                 } catch (IOException | SwapException e) {
                     throw new ImportException(e.getMessage(), e);
                 }
@@ -636,19 +638,7 @@ public class NLIExcelImport {
             if (Files.exists(sourceOcrFolder)) {
                 List<Path> dataInSourceOcrFolder = StorageProvider.getInstance().listFiles(sourceOcrFolder.toString());
                 for (Path currentData : dataInSourceOcrFolder) {
-                    if (Files.isRegularFile(currentData)) {
-                        try {
-                            copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
-                        } catch (IOException | SwapException e) {
-                            log.error(e);
-                        }
-                    } else {
-                        try {
-                            FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
-                        } catch (IOException | SwapException e) {
-                            log.error(e);
-                        }
-                    }
+                    copyOcrFile(currentData, existingProcess);
                 }
             }
         }
@@ -685,6 +675,18 @@ public class NLIExcelImport {
                 iNumber++;
                 StorageProvider.getInstance().copyFile(currentData, Paths.get(copyToDirectory, newFilename));
             }
+        }
+    }
+
+    private void copyOcrFile(Path currentData, Process existingProcess) {
+        try {
+            if (Files.isRegularFile(currentData)) {
+                copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
+            } else {
+                FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
+            }
+        } catch (IOException | SwapException e) {
+            log.error(e);
         }
     }
 
