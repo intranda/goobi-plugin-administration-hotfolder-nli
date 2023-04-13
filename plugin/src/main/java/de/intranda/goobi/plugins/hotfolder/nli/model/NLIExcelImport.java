@@ -123,6 +123,11 @@ public class NLIExcelImport {
         Fileformat ff;
         try {
 
+            Object tempObject = record.getObject();
+            List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
+            Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
+            Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
+
             try {
                 Path imageSourceFolder = getImageFolderPath(record, hff);
                 io.setImportFileName(imageSourceFolder.toString());
@@ -132,7 +137,9 @@ public class NLIExcelImport {
                     log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
                     return null;
                 }
-                checkMandatoryFields(getHeaderOrder(record), getRowMap(record));
+
+                //                checkMandatoryFields(getHeaderOrder(record), getRowMap(record));
+                checkMandatoryFields(headerOrder, rowMap);
             } catch (ImportException e) {
                 io.setErrorMessage(e.getMessage());
                 io.setImportReturnValue(ImportReturnValue.NoData);
@@ -148,7 +155,9 @@ public class NLIExcelImport {
             Path importFolder = null;
             // generate a mets file
             try {
-                ff = createFileformat(io, getHeaderOrder(record), getRowMap(record));
+                //                ff = createFileformat(io, getHeaderOrder(record), getRowMap(record));
+                ff = createFileformat(io, headerOrder, rowMap);
+
                 //Name the process:
                 currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
                 String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
@@ -796,24 +805,6 @@ public class NLIExcelImport {
             }
         }
         return rowCounter;
-    }
-
-    private Map<String, Integer> getHeaderOrder(Record record) {
-        Object tempObject = record.getObject();
-
-        List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
-        Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
-        Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
-        return headerOrder;
-    }
-
-    private Map<Integer, String> getRowMap(Record record) {
-        Object tempObject = record.getObject();
-
-        List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
-        Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
-        Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
-        return rowMap;
     }
 
     /**
