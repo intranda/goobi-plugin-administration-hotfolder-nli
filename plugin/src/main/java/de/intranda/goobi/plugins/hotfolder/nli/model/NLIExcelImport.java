@@ -420,23 +420,46 @@ public class NLIExcelImport {
 
     private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder, String catalogue)
             throws ImportException {
-        IOpacPlugin myImportOpac = null;
-        ConfigOpacCatalogue coc = null;
-        for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(workflowTitle)) {
-            if (configOpacCatalogue.getTitle().equals(catalogue)) {
-                myImportOpac = configOpacCatalogue.getOpacPlugin();
-                coc = configOpacCatalogue;
-            }
-        }
+        // find the proper ConfigOpacCatalogue according to the input catalogue
+        ConfigOpacCatalogue coc = getProperConfigOpacCatalogue(catalogue);
+        IOpacPlugin myImportOpac = coc.getOpacPlugin();
         if (myImportOpac == null) {
             throw new ImportException("Opac plugin for catalogue " + catalogue + " not found. Abort.");
         }
-        Fileformat myRdf = null;
-        DocStruct ds = null;
 
         String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
-        try {
 
+        // find out Fileformat from IOpacPlugin regarding identifier
+        Fileformat myRdf = getFileformatGivenIdentifier(myImportOpac, coc, identifier);
+
+        // get DocStruct from Fileformat
+        DocStruct ds = getDocStructFromFileformat(myRdf, identifier);
+
+        // update the private field ats
+        updateFieldAts(myImportOpac, ds);
+
+        return myRdf;
+    }
+
+    private ConfigOpacCatalogue getProperConfigOpacCatalogue(String catalogue) throws ImportException {
+        ConfigOpacCatalogue coc = null;
+        for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(workflowTitle)) {
+            if (configOpacCatalogue.getTitle().equals(catalogue)) {
+                coc = configOpacCatalogue;
+                // no break here, so by multiple occurrences take the last one? - Zehong
+            }
+        }
+
+        if (coc == null) {
+            throw new ImportException("ConfigOpacCatalogue for catalogue " + catalogue + " not found. Abort.");
+        }
+
+        return coc;
+    }
+
+    private Fileformat getFileformatGivenIdentifier(IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, String identifier) throws ImportException {
+        Fileformat myRdf = null;
+        try {
             myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
             if (myRdf == null) {
                 throw new ImportException("Could not import record " + identifier
@@ -446,7 +469,11 @@ public class NLIExcelImport {
             throw new ImportException("Could not import record " + identifier
                     + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
         }
+        return myRdf;
+    }
 
+    private DocStruct getDocStructFromFileformat(Fileformat myRdf, String identifier) throws ImportException {
+        DocStruct ds = null;
         try {
             ds = myRdf.getDigitalDocument().getLogicalDocStruct();
             if (ds.getType().isAnchor()) {
@@ -460,7 +487,10 @@ public class NLIExcelImport {
             throw new ImportException("Could not import record " + identifier
                     + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
         }
+        return ds;
+    }
 
+    private void updateFieldAts(IOpacPlugin myImportOpac, DocStruct ds) {
         try {
             ats = myImportOpac.getAtstsl();
 
@@ -472,8 +502,6 @@ public class NLIExcelImport {
         } catch (Exception e) {
             ats = "";
         }
-
-        return myRdf;
     }
 
     private void writeMetadataToDocStruct(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, DocStruct logical,
