@@ -128,24 +128,19 @@ public class NLIExcelImport {
             Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
             Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
 
+            Path imageSourceFolder = null;
             try {
-                Path imageSourceFolder = getImageFolderPath(record, hff);
+                imageSourceFolder = getImageFolderPath(record, hff);
                 io.setImportFileName(imageSourceFolder.toString());
-                try {
-                    checkImageSourceFolder(imageSourceFolder);
-                } catch (ImportException e) {
-                    log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
-                    return null;
-                }
+                checkImageSourceFolder(imageSourceFolder);
+            } catch (ImportException e) {
+                log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+                return null;
+            }
 
-                //                checkMandatoryFields(getHeaderOrder(record), getRowMap(record));
+            try {
                 checkMandatoryFields(headerOrder, rowMap);
             } catch (ImportException e) {
-                io.setErrorMessage(e.getMessage());
-                io.setImportReturnValue(ImportReturnValue.NoData);
-                return io;
-            } catch (Exception e) {
-                log.error(e);
                 io.setErrorMessage(e.getMessage());
                 io.setImportReturnValue(ImportReturnValue.NoData);
                 return io;
@@ -155,7 +150,6 @@ public class NLIExcelImport {
             Path importFolder = null;
             // generate a mets file
             try {
-                //                ff = createFileformat(io, getHeaderOrder(record), getRowMap(record));
                 ff = createFileformat(io, headerOrder, rowMap);
 
                 //Name the process:
