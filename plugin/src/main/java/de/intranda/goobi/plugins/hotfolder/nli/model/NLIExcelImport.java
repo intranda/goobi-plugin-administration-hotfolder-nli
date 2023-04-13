@@ -344,8 +344,7 @@ public class NLIExcelImport {
 
     private Fileformat createFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
-        Fileformat ff;
-        ff = initializeFileformat(io, headerOrder, rowMap);
+        Fileformat ff = initializeFileformat(io, headerOrder, rowMap);
         DocStruct logical = ff.getDigitalDocument().getLogicalDocStruct();
         DocStruct anchor = null;
         if (Optional.ofNullable(logical).map(DocStruct::getType).map(DocStructType::isAnchor).orElse(false)) {
@@ -501,46 +500,62 @@ public class NLIExcelImport {
     private void writeMetadataToDocStruct(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, DocStruct logical,
             DocStruct anchor) {
         for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
-
-            String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
             String identifier = null;
             if (mmo.getNormdataHeaderName() != null) {
                 identifier = rowMap.get(headerOrder.get(mmo.getNormdataHeaderName()));
             }
-            if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
-                try {
-                    List<Metadata> existingMetadata =
-                            (List<Metadata>) logical.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                    if ((existingMetadata == null || existingMetadata.isEmpty()) && anchor != null) {
-                        existingMetadata = (List<Metadata>) anchor.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                    }
-                    if (existingMetadata != null && !existingMetadata.isEmpty()) {
-                        existingMetadata.get(0).setValue(value);
-                    } else {
-                        Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
-                        md.setValue(value);
-                        if (identifier != null) {
-                            md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
 
-                        }
-                        if (anchor != null && "anchor".equals(mmo.getDocType())) {
-                            anchor.addMetadata(md);
-                        } else {
-                            logical.addMetadata(md);
-                        }
-                    }
-                } catch (MetadataTypeNotAllowedException e) {
-                    log.info(e);
-                    // Metadata is not known or not allowed
+            String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
+            if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
+                // get a list of existing Metadata objects
+                List<Metadata> existingMetadata = getExistingMetadata(mmo, logical, anchor);
+
+                if (existingMetadata != null && !existingMetadata.isEmpty()) {
+                    existingMetadata.get(0).setValue(value);
+                } else {
+                    addNewMetadataToDocStruct(mmo, logical, anchor, value, identifier);
                 }
             }
 
+            // save process property
             if (StringUtils.isNotBlank(mmo.getPropertyName()) && StringUtils.isNotBlank(value)) {
                 Processproperty p = new Processproperty();
                 p.setTitel(mmo.getPropertyName());
                 p.setWert(value);
                 io.getProcessProperties().add(p);
             }
+        }
+    }
+
+    private List<Metadata> getExistingMetadata(MetadataMappingObject mmo, DocStruct logical, DocStruct anchor) {
+        List<Metadata> existingMetadata =
+                (List<Metadata>) logical.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+
+        if ((existingMetadata == null || existingMetadata.isEmpty()) && anchor != null) {
+            existingMetadata = (List<Metadata>) anchor.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+        }
+
+        return existingMetadata;
+    }
+
+    private void addNewMetadataToDocStruct(MetadataMappingObject mmo, DocStruct logical, DocStruct anchor, String value, String identifier) {
+        try {
+            Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
+            md.setValue(value);
+
+            if (identifier != null) {
+                md.setAutorityFile("gnd", "http://d-nb.info/gnd/", identifier);
+            }
+
+            if (anchor != null && "anchor".equals(mmo.getDocType())) {
+                anchor.addMetadata(md);
+            } else {
+                logical.addMetadata(md);
+            }
+
+        } catch (MetadataTypeNotAllowedException e) {
+            log.info(e);
+            // Metadata is not known or not allowed
         }
     }
 
@@ -619,8 +634,8 @@ public class NLIExcelImport {
 
             // ocr
             if (Files.exists(sourceOcrFolder)) {
-                List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceOcrFolder.toString());
-                for (Path currentData : dataInSourceImageFolder) {
+                List<Path> dataInSourceOcrFolder = StorageProvider.getInstance().listFiles(sourceOcrFolder.toString());
+                for (Path currentData : dataInSourceOcrFolder) {
                     if (Files.isRegularFile(currentData)) {
                         try {
                             copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
