@@ -371,34 +371,13 @@ public class NLIExcelImport {
             logical = digitalDocument.createDocStruct(logicalType);
             digitalDocument.setLogicalDocStruct(logical);
         } else {
-            boolean validRequest = false;
-            for (MetadataMappingObject mmo : config.getMetadataList()) {
-                if (StringUtils.isNotBlank(mmo.getSearchField()) && headerOrder.get(mmo.getHeaderName()) != null) {
-                    validRequest = true;
-                    break;
-                }
-            }
-
-            if (!validRequest) {
-                if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
-                    throw new ImportException("Cannot request catalogue, no identifier column defined");
-                }
-
-                String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
-                if (StringUtils.isBlank(catalogueIdentifier)) {
-                    throw new ImportException("Cannot request catalogue, no identifier in excel file");
-                }
-            }
-
-            String catalogue = config.getOpacName();
-            ff = getRecordFromCatalogue(rowMap, headerOrder, catalogue);
+            ff = getRecordFromCatalogue(rowMap, headerOrder);
             digitalDocument = ff.getDigitalDocument();
             logical = digitalDocument.getLogicalDocStruct();
             if (logical.getType().isAnchor()) {
                 anchor = logical;
                 logical = anchor.getAllChildren().get(0);
             }
-
         }
 
         DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
@@ -418,16 +397,18 @@ public class NLIExcelImport {
         return ff;
     }
 
-    private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder, String catalogue)
+    private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder)
             throws ImportException {
+        // get catalogue identifier
+        String identifier = getCatalogueIdentifierFromRowMap(rowMap, headerOrder);
+
         // find the proper ConfigOpacCatalogue according to the input catalogue
+        String catalogue = config.getOpacName();
         ConfigOpacCatalogue coc = getProperConfigOpacCatalogue(catalogue);
         IOpacPlugin myImportOpac = coc.getOpacPlugin();
         if (myImportOpac == null) {
             throw new ImportException("Opac plugin for catalogue " + catalogue + " not found. Abort.");
         }
-
-        String identifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
 
         // find out Fileformat from IOpacPlugin regarding identifier
         Fileformat myRdf = getFileformatGivenIdentifier(myImportOpac, coc, identifier);
@@ -439,6 +420,19 @@ public class NLIExcelImport {
         updateFieldAts(myImportOpac, ds);
 
         return myRdf;
+    }
+
+    private String getCatalogueIdentifierFromRowMap(Map<Integer, String> rowMap, Map<String, Integer> headerOrder) throws ImportException {
+        if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
+            throw new ImportException("Cannot request catalogue, no identifier column defined");
+        }
+
+        String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+        if (StringUtils.isBlank(catalogueIdentifier)) {
+            throw new ImportException("Cannot request catalogue, no identifier in excel file");
+        }
+
+        return catalogueIdentifier;
     }
 
     private ConfigOpacCatalogue getProperConfigOpacCatalogue(String catalogue) throws ImportException {
