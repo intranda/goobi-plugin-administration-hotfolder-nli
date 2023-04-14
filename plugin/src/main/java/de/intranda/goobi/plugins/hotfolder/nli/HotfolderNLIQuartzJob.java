@@ -263,28 +263,27 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
-            try {
-                //create new process
-                org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
-                org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
-                if (processNew != null && processNew.getId() != null) {
-                    log.info("NLI hotfolder - created process: " + processNew.getId());
+            //create new process
+            org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
+            org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
+            if (processNew != null && processNew.getId() != null) {
+                log.info("NLI hotfolder - created process: " + processNew.getId());
 
-                    //close first step
-                    HelperSchritte hs = new HelperSchritte();
-                    Step firstOpenStep = processNew.getFirstOpenStep();
-                    hs.CloseStepObjectAutomatic(firstOpenStep);
+                //close first step
+                HelperSchritte hs = new HelperSchritte();
+                Step firstOpenStep = processNew.getFirstOpenStep();
+                hs.CloseStepObjectAutomatic(firstOpenStep);
 
-                    if (excelImport.shouldDeleteSourceFiles()) {
-                        excelImport.deleteSourceFiles(hff, record);
-                    }
-                } else { // processNew == null || processNew.getId() == null
-                    io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
-                    io.setImportReturnValue(ImportReturnValue.NoData);
+                // delete source files if configured so
+                if (excelImport.shouldDeleteSourceFiles()) {
+                    excelImport.deleteSourceFiles(hff, record);
                 }
-            } finally {
-                excelImport.deleteTempImportData(io);
+            } else { // processNew == null || processNew.getId() == null
+                io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
+                io.setImportReturnValue(ImportReturnValue.NoData);
             }
+
+            excelImport.deleteTempImportData(io);
 
         } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
             //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
