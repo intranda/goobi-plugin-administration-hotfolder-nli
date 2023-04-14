@@ -59,41 +59,24 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             return;
         }
 
-        Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        if (Files.exists(lockFile)) {
-            log.info("NLI hotfolder is already running - not running a second time in parallel");
-            return;
-        }
-
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
         if (Files.exists(pauseFile)) {
             log.info("NLI hotfolder is paused - not running");
             return;
         }
 
+        Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
+        if (Files.exists(lockFile)) {
+            log.info("NLI hotfolder is already running - not running a second time in parallel");
+            return;
+        }
+
         try {
+            // set lock
             Files.createFile(lockFile);
             log.info("NLI hotfolder: Starting import run");
-            List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
-            log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
 
-            // check schedule to determine whether templates should be ignored or not
-            List<String> ignoredTemplates = new ArrayList<>();
-            importFolders = importFolders.stream().filter(folder -> {
-                SubnodeConfiguration templateConfig = NLIExcelImport.getTemplateConfig(folder.getTemplateName());
-                Integer startTime = templateConfig.getInt("schedule/start", 0);
-                Integer endTime = templateConfig.getInt("schedule/end", 0);
-                int currentHour = LocalDateTime.now().getHour();
-                boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-                if (!run) {
-                    ignoredTemplates.add(folder.getTemplateName());
-                }
-                return run;
-            }).collect(Collectors.toList());
-
-            ignoredTemplates.stream()
-                    .distinct()
-                    .forEach(template -> log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template));
+            List<HotfolderFolder> importFolders = getImportFolders(hotfolderPath);
 
             // create an ImportObject instance for every folder in the importFolders
             List<ImportObject> imports = createProcesses(importFolders);
@@ -153,6 +136,34 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         } else {
             return true;
         }
+    }
+
+    // ======= private methods ======= //
+
+    private List<HotfolderFolder> getImportFolders(Path hotfolderPath) throws IOException {
+        List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
+        log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
+
+        // check schedule to determine whether templates should be ignored or not
+        List<String> ignoredTemplates = new ArrayList<>();
+        importFolders = importFolders.stream().filter(folder -> {
+            SubnodeConfiguration templateConfig = NLIExcelImport.getTemplateConfig(folder.getTemplateName());
+            Integer startTime = templateConfig.getInt("schedule/start", 0);
+            Integer endTime = templateConfig.getInt("schedule/end", 0);
+            int currentHour = LocalDateTime.now().getHour();
+            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+            if (!run) {
+                ignoredTemplates.add(folder.getTemplateName());
+            }
+            return run;
+        }).collect(Collectors.toList());
+
+        // report all ignored templates
+        ignoredTemplates.stream()
+                .distinct()
+                .forEach(template -> log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template));
+
+        return importFolders;
     }
 
     /**
