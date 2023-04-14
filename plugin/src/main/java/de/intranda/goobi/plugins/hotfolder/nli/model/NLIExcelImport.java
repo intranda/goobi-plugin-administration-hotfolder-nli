@@ -205,13 +205,13 @@ public class NLIExcelImport {
         //remove temp file
         try {
             if (io.getMetsFilename() != null) {
-                File file = new File(io.getMetsFilename());
-                if (file.exists()) {
-                    storageProvider.deleteFile(file.toPath());
+                Path filePath = new File(io.getMetsFilename()).toPath();
+                if (storageProvider.isFileExists(filePath)) {
+                    storageProvider.deleteFile(filePath);
                 }
-                File folder = new File(io.getMetsFilename().replace(".xml", ""));
-                if (folder.exists()) {
-                    storageProvider.deleteDir(folder.toPath());
+                Path folderPath = new File(io.getMetsFilename().replace(".xml", "")).toPath();
+                if (storageProvider.isFileExists(folderPath)) {
+                    storageProvider.deleteDir(folderPath);
                 }
             }
         } catch (IOException e) {
