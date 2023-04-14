@@ -121,18 +121,13 @@ public class NLIExcelImport {
         ImportObject io = new ImportObject();
         io.setImportFileName(sourceFile + ":" + rowNumber);
         try {
-
             // import image source folder
             boolean sourceFolderImported = importImageSourceFolder(io, record, hff);
             if (!sourceFolderImported) {
                 return null;
             }
 
-            //Folder directly within the goobi import directory containing the files to be imported
-            Path importFolder = null;
-
-            Fileformat ff;
-
+            // prepare headerOrder and rowMap
             Object tempObject = record.getObject();
             List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
             Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
@@ -142,7 +137,7 @@ public class NLIExcelImport {
             checkMandatoryFields(headerOrder, rowMap);
 
             // generate a mets file
-            ff = createFileformat(io, headerOrder, rowMap);
+            Fileformat ff = createFileformat(io, headerOrder, rowMap);
 
             // name the process:
             currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
@@ -157,8 +152,8 @@ public class NLIExcelImport {
             //                    this.currentIdentifier = io.getProcessTitle();
             //                }
 
-            // copy the image to the import folder
-            importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
+            // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
+            Path importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
@@ -228,10 +223,9 @@ public class NLIExcelImport {
         String idColumn = getConfig().getIdentifierHeaderName();
         Map<String, Integer> headerOrder = new HashMap<>();
 
-        InputStream fileInputStream = null;
-        try {
-            fileInputStream = new FileInputStream(file);
-            BOMInputStream in = new BOMInputStream(fileInputStream, false);
+        try (InputStream fileInputStream = new FileInputStream(file);
+                BOMInputStream in = new BOMInputStream(fileInputStream, false)) {
+
             Workbook wb = WorkbookFactory.create(in);
             Sheet sheet = wb.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.rowIterator();
@@ -273,14 +267,6 @@ public class NLIExcelImport {
         } catch (IOException e) {
             log.error(e);
             throw e;
-        } finally {
-            if (fileInputStream != null) {
-                try {
-                    fileInputStream.close();
-                } catch (IOException e) {
-                    log.error(e);
-                }
-            }
         }
 
         return recordList;
