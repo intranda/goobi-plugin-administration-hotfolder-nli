@@ -122,17 +122,17 @@ public class NLIExcelImport {
         ImportObject io = new ImportObject();
         io.setImportFileName(sourceFile + ":" + rowNumber);
         try {
-            // import image source folder
-            boolean sourceFolderImported = importImageSourceFolder(io, record, hff);
-            if (!sourceFolderImported) {
-                return null;
-            }
-
             // prepare headerOrder and rowMap
             Object tempObject = record.getObject();
             List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
             Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
             Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
+
+            // import image source folder
+            boolean sourceFolderImported = importImageSourceFolder(io, hff, headerOrder, rowMap);
+            if (!sourceFolderImported) {
+                return null;
+            }
 
             // check mandatory fields
             checkMandatoryFields(headerOrder, rowMap);
@@ -141,7 +141,8 @@ public class NLIExcelImport {
             Fileformat ff = createFileformat(io, headerOrder, rowMap);
 
             // name the process:
-            currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
+            //            currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
+            currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
             String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
             String fileName = nameProcess(processName, io);
@@ -154,13 +155,13 @@ public class NLIExcelImport {
             //                }
 
             // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
-            Path importImageFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
+            Path importImageFolder = copyImagesFromSourceToTempFolder(io, fileName, hff, headerOrder, rowMap);
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
             // check if the process exists
             if (replaceExisting) {
-                replaceExistingProcess(io, ff, importImageFolder, record);
+                replaceExistingProcess(io, ff, importImageFolder, headerOrder, rowMap);
             }
 
         } catch (ImportException e) {
@@ -178,9 +179,15 @@ public class NLIExcelImport {
     }
 
     public void deleteSourceFiles(HotfolderFolder hff, Record record) {
+        // prepare headerOrder and rowMap
+        Object tempObject = record.getObject();
+        List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
+        Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
+        Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
+
         Path sourceFolder;
         try {
-            sourceFolder = getImageFolderPath(record, hff);
+            sourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
             if (sourceFolder != null && Files.exists(sourceFolder)) {
                 StorageProvider.getInstance().deleteDir(sourceFolder);
             }
@@ -297,10 +304,11 @@ public class NLIExcelImport {
 
     // ======= private methods ======= //
 
-    private boolean importImageSourceFolder(ImportObject io, Record record, HotfolderFolder hff) throws IOException {
+    private boolean importImageSourceFolder(ImportObject io, HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+            throws IOException {
         Path imageSourceFolder = null;
         try {
-            imageSourceFolder = getImageFolderPath(record, hff);
+            imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
             io.setImportFileName(imageSourceFolder.toString());
             checkImageSourceFolder(imageSourceFolder);
         } catch (ImportException e) {
@@ -362,7 +370,7 @@ public class NLIExcelImport {
             anchor = logical;
             logical = anchor.getAllChildren().stream().findFirst().orElse(null);
         }
-        writeMetadataToDocStruct(io, headerOrder, rowMap, logical, anchor);
+        writeMetadataToDocStruct(io, logical, anchor, headerOrder, rowMap);
         return ff;
     }
 
@@ -508,8 +516,8 @@ public class NLIExcelImport {
         }
     }
 
-    private void writeMetadataToDocStruct(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap, DocStruct logical,
-            DocStruct anchor) {
+    private void writeMetadataToDocStruct(ImportObject io, DocStruct logical, DocStruct anchor, Map<String, Integer> headerOrder,
+            Map<Integer, String> rowMap) {
         for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
             String identifier = null;
             if (mmo.getNormdataHeaderName() != null) {
@@ -580,10 +588,10 @@ public class NLIExcelImport {
      * @throws IOException If an error occured copying source files
      * @throws ImportException If no image folder was found
      */
-    private Path copyImagesFromSourceToTempFolder(ImportObject io, Record record, String fileName, HotfolderFolder hff, String filenamePrefix)
-            throws IOException, ImportException {
+    private Path copyImagesFromSourceToTempFolder(ImportObject io, String fileName, HotfolderFolder hff, Map<String, Integer> headerOrder,
+            Map<Integer, String> rowMap) throws IOException, ImportException {
 
-        Path imageSourceFolder = getImageFolderPath(record, hff);
+        Path imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
 
         if (Files.exists(imageSourceFolder) && Files.isDirectory(imageSourceFolder)) {
 
@@ -592,15 +600,16 @@ public class NLIExcelImport {
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
 
             Path path = Paths.get(foldername, "images", folderNameRule);
-            copyImagesToFolder(imageSourceFolder, path.toString(), filenamePrefix);
+            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            copyImagesToFolder(imageSourceFolder, path.toString(), fileNamePrefix);
             return Paths.get(foldername);
         } else {
             throw new ImportException("No images to copy: Image source folder " + imageSourceFolder + " does not exist");
         }
     }
 
-    private Path getImageFolderPath(Record record, HotfolderFolder hff) throws ImportException {
-        String imageFolder = getCellValue(config.getProcessHeaderName(), record);
+    private Path getImageFolderPath(HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
+        String imageFolder = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
         if (StringUtils.isBlank(imageFolder)) {
             throw new ImportException("No imageFolder in excel File");
         }
@@ -608,28 +617,22 @@ public class NLIExcelImport {
         return Paths.get(hff.getProjectFolder().toString(), imageFolder);
     }
 
-    private String getCellValue(String column, Record record) {
-        Object tempObject = record.getObject();
-
-        List<Map<?, ?>> list = (List<Map<?, ?>>) tempObject;
-        Map<String, Integer> headerOrder = (Map<String, Integer>) list.get(0);
-        Map<Integer, String> rowMap = (Map<Integer, String>) list.get(1);
-
+    private String getCellValue(String column, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) {
         return rowMap.get(headerOrder.get(column));
     }
 
-    private void writeToExistingProcess(Fileformat ff, Path importFolder, Process existingProcess, String filenamePrefix)
+    private void writeToExistingProcess(Fileformat ff, Path importFolder, Process existingProcess, String fileNamePrefix)
             throws ImportException {
         try {
             existingProcess.writeMetadataFile(ff);
-            copyImagesIntoProcessFolder(existingProcess, importFolder, filenamePrefix);
+            copyImagesIntoProcessFolder(existingProcess, importFolder, fileNamePrefix);
 
         } catch (WriteException | PreferencesException | IOException | SwapException e) {
             throw new ImportException(e.getMessage(), e);
         }
     }
 
-    private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder, String filenamePrefix) throws ImportException {
+    private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder, String fileNamePrefix) throws ImportException {
         if (StorageProvider.getInstance().isFileExists(sourceRootFolder)) {
             Path sourceImageFolder = Paths.get(sourceRootFolder.toString(), "images");
             Path sourceOcrFolder = Paths.get(sourceRootFolder.toString(), "ocr");
@@ -637,7 +640,7 @@ public class NLIExcelImport {
             if (StorageProvider.getInstance().isDirectory(sourceImageFolder)) {
                 try {
                     String copyToDirectory = existingProcess.getImagesDirectory();
-                    copyImagesToFolder(sourceImageFolder, copyToDirectory, filenamePrefix);
+                    copyImagesToFolder(sourceImageFolder, copyToDirectory, fileNamePrefix);
 
                 } catch (IOException | SwapException e) {
                     throw new ImportException(e.getMessage(), e);
@@ -658,12 +661,12 @@ public class NLIExcelImport {
      * 
      * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif, .pdf or .epux suffix are being copied
      * @param copyToDirectory The directory into which the files/subdirectories are to be copied
-     * @param filenamePrefix A prefix for the file names of .tif files in the 'copyToDirectory'. If filenamePrefix is blank, the image files are
-     *            copied without name change. Otherwise they are named <filenamePrefix>_i.tif/pdf/epub in the target folder, where i is an
+     * @param fileNamePrefix A prefix for the file names of .tif files in the 'copyToDirectory'. If fileNamePrefix is blank, the image files are
+     *            copied without name change. Otherwise they are named <fileNamePrefix>_i.tif/pdf/epub in the target folder, where i is an
      *            incrementing integer starting at value 1
      * @throws IOException
      */
-    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String filenamePrefix) throws IOException {
+    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String fileNamePrefix) throws IOException {
 
         List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceImageFolder.toString());
         dataInSourceImageFolder.sort(Comparator.comparing(o -> o.toFile().getName().toUpperCase()));
@@ -671,16 +674,16 @@ public class NLIExcelImport {
 
         int iNumber = 1;
         for (Path currentData : dataInSourceImageFolder) {
-            String filename = currentData.getFileName().toString();
+            String fileName = currentData.getFileName().toString();
             if (Files.isDirectory(currentData)) {
                 Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
                 Files.createDirectories(targetDir);
                 StorageProvider.getInstance().copyDirectory(currentData, targetDir);
-            } else if (!filename.startsWith(".") && filename.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
-                String newFilename = filename;
-                if (StringUtils.isNotBlank(filenamePrefix)) {
+            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
+                String newFilename = fileName;
+                if (StringUtils.isNotBlank(fileNamePrefix)) {
                     String number = String.format("%04d", iNumber);
-                    newFilename = filenamePrefix + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
+                    newFilename = fileNamePrefix + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
                 }
                 iNumber++;
                 StorageProvider.getInstance().copyFile(currentData, Paths.get(copyToDirectory, newFilename));
@@ -716,7 +719,8 @@ public class NLIExcelImport {
 
     }
 
-    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
+    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Map<String, Integer> headerOrder,
+            Map<Integer, String> rowMap) {
         Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
         if (existingProcess == null) {
             return;
@@ -724,7 +728,8 @@ public class NLIExcelImport {
 
         // otherwise, try to replace the existing process
         try {
-            writeToExistingProcess(ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
+            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            writeToExistingProcess(ff, importFolder, existingProcess, fileNamePrefix);
             io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
             io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
         } catch (ImportException e) {
