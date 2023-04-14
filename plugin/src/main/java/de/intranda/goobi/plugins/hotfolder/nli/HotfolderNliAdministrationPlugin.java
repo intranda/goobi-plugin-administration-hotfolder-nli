@@ -2,7 +2,6 @@ package de.intranda.goobi.plugins.hotfolder.nli;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -24,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.helper.StorageProvider;
+import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
@@ -33,6 +34,7 @@ import net.xeoh.plugins.base.annotations.PluginImplementation;
 public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     private static ObjectMapper om = new ObjectMapper();
     private static JavaType lastRunInfoListType = om.getTypeFactory().constructCollectionType(List.class, GUIImportResult.class);
+    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     private Path hotfolderPath;
 
@@ -65,37 +67,38 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
     public boolean isPaused() {
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
-        return Files.exists(pauseFile);
+        return storageProvider.isFileExists(pauseFile);
     }
 
     public boolean isRunning() {
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        return Files.exists(lockFile);
+        return storageProvider.isFileExists(lockFile);
     }
 
     public Date getStartedRunningAt() throws IOException {
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        return new Date(Files.getLastModifiedTime(lockFile).toMillis());
+        return new Date(storageProvider.getLastModifiedDate(lockFile));
     }
 
     public String getRunningSince() throws IOException {
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        Duration runningTime = Duration.between(Files.getLastModifiedTime(lockFile).toInstant(), Instant.now());
+        Instant modifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lockFile));
+        Duration runningTime = Duration.between(modifiedInstant, Instant.now());
         long s = runningTime.getSeconds();
         return String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
     }
 
     public void pauseWork() throws IOException {
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
-        if (!Files.exists(pauseFile)) {
-            Files.createFile(pauseFile);
+        if (!storageProvider.isFileExists(pauseFile)) {
+            storageProvider.createFile(pauseFile);
         }
     }
 
     public void resumeWork() throws IOException {
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
-        if (Files.exists(pauseFile)) {
-            Files.delete(pauseFile);
+        if (storageProvider.isFileExists(pauseFile)) {
+            storageProvider.deleteFile(pauseFile);
         }
     }
 
@@ -109,14 +112,14 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     public void loadLastRunInfo() throws JsonParseException, JsonMappingException, IOException {
         lastRunInfoLoadTime = Instant.now();
         Path lastRunInfoPath = hotfolderPath.resolve("lastRunResults.json");
-        if (!Files.exists(lastRunInfoPath)) {
+        if (!storageProvider.isFileExists(lastRunInfoPath)) {
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
             return;
         }
-        Instant lastModified = Files.getLastModifiedTime(lastRunInfoPath).toInstant();
+        Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lastRunInfoPath));
         if (this.lastRunInfoModified == null || lastModified.isAfter(this.lastRunInfoModified)) {
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
-            try (InputStream src = Files.newInputStream(lastRunInfoPath)) {
+            try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
                 List<GUIImportResult> results = om.readValue(src, lastRunInfoListType);
                 for (GUIImportResult guiResult : results) {
                     Path absPath = Paths.get(guiResult.getImportFileName());
