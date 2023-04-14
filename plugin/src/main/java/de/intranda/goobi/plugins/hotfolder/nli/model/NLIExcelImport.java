@@ -120,7 +120,7 @@ public class NLIExcelImport {
 
         ImportObject io = new ImportObject();
         io.setImportFileName(sourceFile + ":" + rowNumber);
-        Fileformat ff;
+        //        Fileformat ff;
         try {
 
             Object tempObject = record.getObject();
@@ -128,6 +128,7 @@ public class NLIExcelImport {
             Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
             Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
 
+            // import image source folder
             Path imageSourceFolder = null;
             try {
                 imageSourceFolder = getImageFolderPath(record, hff);
@@ -138,21 +139,19 @@ public class NLIExcelImport {
                 return null;
             }
 
-            try {
-                checkMandatoryFields(headerOrder, rowMap);
-            } catch (ImportException e) {
-                io.setErrorMessage(e.getMessage());
-                io.setImportReturnValue(ImportReturnValue.NoData);
-                return io;
-            }
-
             //Folder directly within the goobi import directory containing the files to be imported
             Path importFolder = null;
-            // generate a mets file
+
+            Fileformat ff;
+
             try {
+                // check mandatory fields
+                checkMandatoryFields(headerOrder, rowMap);
+
+                // generate a mets file
                 ff = createFileformat(io, headerOrder, rowMap);
 
-                //Name the process:
+                // name the process:
                 currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
                 String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
@@ -165,12 +164,12 @@ public class NLIExcelImport {
                 //                    this.currentIdentifier = io.getProcessTitle();
                 //                }
 
-                //copy the image to the import folder
+                // copy the image to the import folder
                 importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
-            } catch (ImportException e1) {
-                log.error(e1.toString());
-                io.setErrorMessage(e1.getMessage());
+            } catch (ImportException e) {
+                log.error(e.toString());
+                io.setErrorMessage(e.getMessage());
                 io.setImportReturnValue(ImportReturnValue.NoData);
                 return io;
             }
