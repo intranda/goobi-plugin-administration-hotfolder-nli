@@ -120,22 +120,11 @@ public class NLIExcelImport {
 
         ImportObject io = new ImportObject();
         io.setImportFileName(sourceFile + ":" + rowNumber);
-        //        Fileformat ff;
         try {
 
-            Object tempObject = record.getObject();
-            List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
-            Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
-            Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
-
             // import image source folder
-            Path imageSourceFolder = null;
-            try {
-                imageSourceFolder = getImageFolderPath(record, hff);
-                io.setImportFileName(imageSourceFolder.toString());
-                checkImageSourceFolder(imageSourceFolder);
-            } catch (ImportException e) {
-                log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+            boolean sourceFolderImported = importImageSourceFolder(io, record, hff);
+            if (!sourceFolderImported) {
                 return null;
             }
 
@@ -143,6 +132,11 @@ public class NLIExcelImport {
             Path importFolder = null;
 
             Fileformat ff;
+
+            Object tempObject = record.getObject();
+            List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
+            Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
+            Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
 
             try {
                 // check mandatory fields
@@ -332,6 +326,20 @@ public class NLIExcelImport {
     }
 
     // ======= private methods ======= //
+
+    private boolean importImageSourceFolder(ImportObject io, Record record, HotfolderFolder hff) throws IOException {
+        Path imageSourceFolder = null;
+        try {
+            imageSourceFolder = getImageFolderPath(record, hff);
+            io.setImportFileName(imageSourceFolder.toString());
+            checkImageSourceFolder(imageSourceFolder);
+        } catch (ImportException e) {
+            log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+            return false;
+        }
+
+        return true;
+    }
 
     private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
         for (MetadataMappingObject mmo : config.getMetadataList()) {
