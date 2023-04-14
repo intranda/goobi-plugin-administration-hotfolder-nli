@@ -93,6 +93,7 @@ public class NLIExcelImport {
 
     public NLIExcelImport(HotfolderFolder hff) {
 
+        // by default /opt/digiverso/goobi/tmp/
         importFolder = ConfigurationHelper.getInstance().getTemporaryFolder();
 
         importTypes = new ArrayList<>();
@@ -112,7 +113,7 @@ public class NLIExcelImport {
     public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff) {
 
         //reset the template if necessary:
-        if (hff.getTemplateName() != workflowTitle) {
+        if (!hff.getTemplateName().equals(workflowTitle)) {
             workflowTitle = hff.getTemplateName();
             config = null;
             getConfig();
@@ -153,13 +154,13 @@ public class NLIExcelImport {
             //                }
 
             // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
-            Path importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
+            Path importImageFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
             // check if the process exists
             if (replaceExisting) {
-                io = replaceExistingProcess(io, ff, importFolder, record);
+                replaceExistingProcess(io, ff, importImageFolder, record);
             }
 
         } catch (ImportException e) {
@@ -224,9 +225,9 @@ public class NLIExcelImport {
         Map<String, Integer> headerOrder = new HashMap<>();
 
         try (InputStream fileInputStream = new FileInputStream(file);
-                BOMInputStream in = new BOMInputStream(fileInputStream, false)) {
+                BOMInputStream in = new BOMInputStream(fileInputStream, false);
+                Workbook wb = WorkbookFactory.create(in)) {
 
-            Workbook wb = WorkbookFactory.create(in);
             Sheet sheet = wb.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.rowIterator();
 
@@ -244,7 +245,7 @@ public class NLIExcelImport {
             }
 
             //  read and validate the header row
-            int numberOfCells = headerRow.getLastCellNum();
+            int numberOfCells = headerRow != null ? headerRow.getLastCellNum() : 0;
             for (int i = 0; i < numberOfCells; i++) {
                 Cell cell = headerRow.getCell(i);
                 if (cell != null) {
@@ -354,7 +355,7 @@ public class NLIExcelImport {
 
     private Fileformat createFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
-        Fileformat ff = initializeFileformat(io, headerOrder, rowMap);
+        Fileformat ff = initializeFileformat(headerOrder, rowMap);
         DocStruct logical = ff.getDigitalDocument().getLogicalDocStruct();
         DocStruct anchor = null;
         if (Optional.ofNullable(logical).map(DocStruct::getType).map(DocStructType::isAnchor).orElse(false)) {
@@ -365,7 +366,7 @@ public class NLIExcelImport {
         return ff;
     }
 
-    private Fileformat initializeFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+    private Fileformat initializeFileformat(Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
         DigitalDocument digitalDocument = null;
         Fileformat ff = null;
@@ -575,7 +576,7 @@ public class NLIExcelImport {
      * @param record
      * @param fileName
      * @param hff
-     * @return path to the import folder directly within the goobi import directory
+     * @return path to the import folder directly within the goobi import directory (? REALLY ?)
      * @throws IOException If an error occured copying source files
      * @throws ImportException If no image folder was found
      */
@@ -603,9 +604,8 @@ public class NLIExcelImport {
         if (StringUtils.isBlank(imageFolder)) {
             throw new ImportException("No imageFolder in excel File");
         }
-        Path imageSourceFolder = Paths.get(hff.getProjectFolder().toString(), imageFolder);
 
-        return imageSourceFolder;
+        return Paths.get(hff.getProjectFolder().toString(), imageFolder);
     }
 
     private String getCellValue(String column, Record record) {
@@ -618,7 +618,7 @@ public class NLIExcelImport {
         return rowMap.get(headerOrder.get(column));
     }
 
-    private void writeToExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Process existingProcess, String filenamePrefix)
+    private void writeToExistingProcess(Fileformat ff, Path importFolder, Process existingProcess, String filenamePrefix)
             throws ImportException {
         try {
             existingProcess.writeMetadataFile(ff);
@@ -716,23 +716,21 @@ public class NLIExcelImport {
 
     }
 
-    private ImportObject replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
+    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
         Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
         if (existingProcess == null) {
-            return io;
+            return;
         }
 
         // otherwise, try to replace the existing process
         try {
-            writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
+            writeToExistingProcess(ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
             io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
             io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
-            return io;
         } catch (ImportException e) {
             log.error(e);
             io.setErrorMessage(e.getMessage());
             io.setImportReturnValue(ImportReturnValue.NoData);
-            return io;
         } finally {
             deleteTempImportData(io);
         }
@@ -826,9 +824,7 @@ public class NLIExcelImport {
             moveFiles = myconfig.getBoolean("moveFiles", false);
         }
 
-        NLIExcelConfig config = new NLIExcelConfig(myconfig);
-
-        return config;
+        return new NLIExcelConfig(myconfig);
     }
 
     public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
