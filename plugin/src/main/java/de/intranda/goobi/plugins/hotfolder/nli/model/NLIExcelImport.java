@@ -47,6 +47,7 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.StorageProvider;
+import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
@@ -84,6 +85,7 @@ public class NLIExcelImport {
     private boolean moveFiles = false;
 
     private static String title = "intranda_administration_hotfolder_nli";
+    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     private List<ImportType> importTypes;
     private String workflowTitle;
@@ -141,7 +143,6 @@ public class NLIExcelImport {
             Fileformat ff = createFileformat(io, headerOrder, rowMap);
 
             // name the process:
-            //            currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
             currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
             String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
@@ -188,8 +189,8 @@ public class NLIExcelImport {
         Path sourceFolder;
         try {
             sourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
-            if (sourceFolder != null && Files.exists(sourceFolder)) {
-                StorageProvider.getInstance().deleteDir(sourceFolder);
+            if (sourceFolder != null && storageProvider.isFileExists(sourceFolder)) {
+                storageProvider.deleteDir(sourceFolder);
             }
         } catch (ImportException e) {
             log.error(e.getMessage(), e);
@@ -206,11 +207,11 @@ public class NLIExcelImport {
             if (io.getMetsFilename() != null) {
                 File file = new File(io.getMetsFilename());
                 if (file.exists()) {
-                    StorageProvider.getInstance().deleteFile(file.toPath());
+                    storageProvider.deleteFile(file.toPath());
                 }
                 File folder = new File(io.getMetsFilename().replace(".xml", ""));
                 if (folder.exists()) {
-                    StorageProvider.getInstance().deleteDir(folder.toPath());
+                    storageProvider.deleteDir(folder.toPath());
                 }
             }
         } catch (IOException e) {
@@ -328,12 +329,16 @@ public class NLIExcelImport {
      * @throws ImportException if any of the above conditions are met, meaning that the folder is not ready for import
      */
     private void checkImageSourceFolder(Path imageSourceFolder) throws IOException, ImportException {
-        if (!Files.exists(imageSourceFolder)) {
+        if (!storageProvider.isFileExists(imageSourceFolder)) {
             throw new ImportException("Image folder does not exist");
         }
+
+        // TODO: How should we use StorageProviderInterface::getLastModifiedDate to replace the following one?
         if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
             throw new ImportException("Image folder has beend modified in the last 30 minutes");
         }
+
+        // TODO: How to use StorageProviderInterface to replace Files in the following cases?
         try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
             List<Path> allFiles = fileStream.collect(Collectors.toList());
             if (allFiles.stream().filter(p -> Files.isRegularFile(p)).findAny().isEmpty()) {
@@ -593,8 +598,7 @@ public class NLIExcelImport {
 
         Path imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
 
-        if (Files.exists(imageSourceFolder) && Files.isDirectory(imageSourceFolder)) {
-
+        if (storageProvider.isFileExists(imageSourceFolder) && storageProvider.isDirectory(imageSourceFolder)) {
             String foldername = fileName.replace(".xml", "");
             String folderNameRule = ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
@@ -633,11 +637,11 @@ public class NLIExcelImport {
     }
 
     private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder, String fileNamePrefix) throws ImportException {
-        if (StorageProvider.getInstance().isFileExists(sourceRootFolder)) {
+        if (storageProvider.isFileExists(sourceRootFolder)) {
             Path sourceImageFolder = Paths.get(sourceRootFolder.toString(), "images");
             Path sourceOcrFolder = Paths.get(sourceRootFolder.toString(), "ocr");
 
-            if (StorageProvider.getInstance().isDirectory(sourceImageFolder)) {
+            if (storageProvider.isDirectory(sourceImageFolder)) {
                 try {
                     String copyToDirectory = existingProcess.getImagesDirectory();
                     copyImagesToFolder(sourceImageFolder, copyToDirectory, fileNamePrefix);
@@ -648,8 +652,8 @@ public class NLIExcelImport {
             }
 
             // ocr
-            if (Files.exists(sourceOcrFolder)) {
-                List<Path> dataInSourceOcrFolder = StorageProvider.getInstance().listFiles(sourceOcrFolder.toString());
+            if (storageProvider.isFileExists(sourceOcrFolder) && storageProvider.isDirectory(sourceOcrFolder)) {
+                List<Path> dataInSourceOcrFolder = storageProvider.listFiles(sourceOcrFolder.toString());
                 for (Path currentData : dataInSourceOcrFolder) {
                     copyOcrFile(currentData, existingProcess);
                 }
@@ -668,17 +672,18 @@ public class NLIExcelImport {
      */
     private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String fileNamePrefix) throws IOException {
 
-        List<Path> dataInSourceImageFolder = StorageProvider.getInstance().listFiles(sourceImageFolder.toString());
+        List<Path> dataInSourceImageFolder = storageProvider.listFiles(sourceImageFolder.toString());
         dataInSourceImageFolder.sort(Comparator.comparing(o -> o.toFile().getName().toUpperCase()));
-        Files.createDirectories(Paths.get(copyToDirectory));
+        storageProvider.createDirectories(Paths.get(copyToDirectory));
 
         int iNumber = 1;
         for (Path currentData : dataInSourceImageFolder) {
             String fileName = currentData.getFileName().toString();
-            if (Files.isDirectory(currentData)) {
+
+            if (storageProvider.isDirectory(currentData)) {
                 Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
-                Files.createDirectories(targetDir);
-                StorageProvider.getInstance().copyDirectory(currentData, targetDir);
+                storageProvider.createDirectories(targetDir);
+                storageProvider.copyDirectory(currentData, targetDir);
             } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
@@ -686,16 +691,19 @@ public class NLIExcelImport {
                     newFilename = fileNamePrefix + "_" + number + "." + FilenameUtils.getExtension(currentData.toString());
                 }
                 iNumber++;
-                StorageProvider.getInstance().copyFile(currentData, Paths.get(copyToDirectory, newFilename));
+                storageProvider.copyFile(currentData, Paths.get(copyToDirectory, newFilename));
             }
         }
     }
 
     private void copyOcrFile(Path currentData, Process existingProcess) {
         try {
+            // TODO: What is a proper candidate in StorageProviderInterface to replace Files::isRegularFile?
             if (Files.isRegularFile(currentData)) {
                 copyFile(currentData, Paths.get(existingProcess.getOcrDirectory(), currentData.getFileName().toString()));
             } else {
+                // TODO: Should we replace the use of FileUtils with StorageProvider? 
+                // The method copyDirectory provided by FileUtils preserves the file dates, which might be important here.
                 FileUtils.copyDirectory(currentData.toFile(), Paths.get(existingProcess.getOcrDirectory()).toFile());
             }
         } catch (IOException | SwapException e) {
@@ -706,16 +714,14 @@ public class NLIExcelImport {
     private void copyFile(Path file, Path destination) throws IOException {
 
         if (moveFiles) {
-            StorageProvider.getInstance().move(file, destination);
+            storageProvider.move(file, destination);
             //            Files.move(file, destination, StandardCopyOption.REPLACE_EXISTING);
+        } else if (storageProvider.isDirectory(file)) {
+            storageProvider.copyDirectory(file, destination);
         } else {
-            if (Files.isDirectory(file)) {
-                StorageProvider.getInstance().copyDirectory(file, destination);
-            } else {
-                StorageProvider.getInstance().copyFile(file, destination);
-            }
-            //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
+            storageProvider.copyFile(file, destination);
         }
+            //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
 
     }
 
