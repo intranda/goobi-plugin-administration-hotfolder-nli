@@ -172,22 +172,7 @@ public class NLIExcelImport {
 
             // check if the process exists
             if (replaceExisting) {
-                Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
-                if (existingProcess != null) {
-                    try {
-                        writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
-                        io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
-                        io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
-                        return io;
-                    } catch (ImportException e) {
-                        log.error(e);
-                        io.setErrorMessage(e.getMessage());
-                        io.setImportReturnValue(ImportReturnValue.NoData);
-                        return io;
-                    } finally {
-                        deleteTempImportData(io);
-                    }
-                }
+                io = replaceExistingProcess(io, ff, importFolder, record);
             }
 
         } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException | IOException e) {
@@ -196,6 +181,28 @@ public class NLIExcelImport {
             return io;
         }
         return io;
+    }
+
+    private ImportObject replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
+        Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
+        if (existingProcess == null) {
+            return io;
+        }
+
+        // otherwise, try to replace the existing process
+        try {
+            writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
+            io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
+            io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
+            return io;
+        } catch (ImportException e) {
+            log.error(e);
+            io.setErrorMessage(e.getMessage());
+            io.setImportReturnValue(ImportReturnValue.NoData);
+            return io;
+        } finally {
+            deleteTempImportData(io);
+        }
     }
 
     public void deleteSourceFiles(HotfolderFolder hff, Record record) {
