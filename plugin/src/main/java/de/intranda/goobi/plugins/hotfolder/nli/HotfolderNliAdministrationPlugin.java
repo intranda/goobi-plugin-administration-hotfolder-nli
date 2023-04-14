@@ -41,10 +41,16 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     @Getter
     private String title = "intranda_administration_hotfolder_nli";
 
+    // information about the last run
     private Map<String, List<GUIImportResult>> lastRunInfo;
+
+    // controls whether or not to show folders
     @Getter
     private Map<String, Boolean> showFolders = new HashMap<>();
+
+    // the instant that the field lastRunInfo was modified
     private Instant lastRunInfoModified;
+    // the instant that the field lastRunInfo was loaded
     private Instant lastRunInfoLoadTime;
 
     @Override
@@ -85,6 +91,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         Instant modifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lockFile));
         Duration runningTime = Duration.between(modifiedInstant, Instant.now());
         long s = runningTime.getSeconds();
+
         return String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
     }
 
@@ -106,6 +113,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         if (this.lastRunInfoLoadTime == null || Instant.now().minus(Duration.ofSeconds(30)).isAfter(lastRunInfoLoadTime)) {
             loadLastRunInfo();
         }
+
         return this.lastRunInfo;
     }
 
@@ -116,22 +124,33 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
             return;
         }
+
+        // the instant of the last modifications made to the json file, signifying modifications in some hotfolder
         Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lastRunInfoPath));
+
+        // check if any modifications happened after lastRunInfoModified, if so then the field lastRunInfo should be updated
         if (this.lastRunInfoModified == null || lastModified.isAfter(this.lastRunInfoModified)) {
+            // clearing up old entries and reload from the json file
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
             try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
                 List<GUIImportResult> results = om.readValue(src, lastRunInfoListType);
+                // add all GUI results accordingly
                 for (GUIImportResult guiResult : results) {
                     Path absPath = Paths.get(guiResult.getImportFileName());
                     String key = hotfolderPath.relativize(absPath.getParent()).toString();
+
+                    // get the list stored in lastRunInfo associated with key
                     List<GUIImportResult> keyResults = this.lastRunInfo.get(key);
+                    // if key does not exist yet in lastRunInfo, add it and associate it with an empty list
                     if (keyResults == null) {
                         keyResults = new ArrayList<>();
                         this.lastRunInfo.put(key, keyResults);
+                        // do not show any folders in the beginning
                         if (this.showFolders.get(key) == null) {
                             this.showFolders.put(key, false);
                         }
                     }
+                    // add result to this list
                     keyResults.add(guiResult);
                 }
             }
