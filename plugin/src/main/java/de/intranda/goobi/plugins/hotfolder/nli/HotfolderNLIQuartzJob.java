@@ -91,9 +91,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 return run;
             }).collect(Collectors.toList());
 
-            ignoredTemplates.stream().distinct().forEach(template -> {
-                log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template);
-            });
+            ignoredTemplates.stream()
+                    .distinct()
+                    .forEach(template -> log.info("NLI hotfolder: Ignore folders for template {} due to schedule configuration", template));
 
             // create an ImportObject instance for every folder in the importFolders
             List<ImportObject> imports = createProcesses(importFolders);
@@ -188,14 +188,12 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     private List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
-        List<ImportObject> imports = new ArrayList<ImportObject>();
+        List<ImportObject> imports = new ArrayList<>();
         for (HotfolderFolder hff : importFolders) {
-
             try {
                 File importFile = hff.getImportFile();
-                List<Path> processFolders = hff.getCurrentProcessFolders();
-
                 if (importFile == null) {
+                    List<Path> processFolders = hff.getCurrentProcessFolders();
                     log.trace("importFile: {}, processFolders.size(): {}", importFile, processFolders.size());
                     continue;
                 }
@@ -203,32 +201,21 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 //otherwise:
                 log.info("NLI hotfolder - importing: " + importFile);
 
+                // prepare the NLIExcelImport object
                 if (excelImport == null) {
                     excelImport = new NLIExcelImport(hff);
                 }
                 excelImport.setWorkflowTitle(hff.getTemplateName());
-                List<Record> records;
-                try {
-                    records = excelImport.generateRecordsFromFile(importFile);
-                } catch (IOException e) {
-                    ImportObject io = new ImportObject();
-                    io.setImportFileName(importFile.getAbsolutePath());
-                    io.setErrorMessage("Could not read import file");
-                    imports.add(io);
-                    //                    break;
+
+                // generate the list of all records
+                List<Record> records = getAllRecords(imports, importFile);
+                if (records == null) {
+                    // some exceptions occurred, return immediately
                     return imports;
                 }
 
-                int lineNumber = 1;
-                String importFilePath = importFile.toString();
-                for (Record record : records) {
-                    lineNumber++;
-                    ImportObject io = prepareImportObject(importFilePath, lineNumber, record, hff);
-                    if (io != null) {
-                        imports.add(io);
-                    }
-
-                }
+                // add all ImportObjects regarding the current HotfolderFolder to the list
+                addImportObjectsRegardingHotfolderFolder(imports, records, importFile, hff);
 
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
@@ -237,7 +224,36 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
             }
         }
+
         return imports;
+    }
+
+    private List<Record> getAllRecords(List<ImportObject> imports, File importFile) {
+        List<Record> records;
+        try {
+            // records will not be null as long as no exception is thrown
+            records = excelImport.generateRecordsFromFile(importFile);
+        } catch (IOException e) {
+            ImportObject io = new ImportObject();
+            io.setImportFileName(importFile.getAbsolutePath());
+            io.setErrorMessage("Could not read import file");
+            imports.add(io);
+            return null;
+        }
+
+        return records;
+    }
+
+    private void addImportObjectsRegardingHotfolderFolder(List<ImportObject> imports, List<Record> records, File importFile, HotfolderFolder hff) {
+        int lineNumber = 1;
+        String importFilePath = importFile.toString();
+        for (Record record : records) {
+            lineNumber++;
+            ImportObject io = prepareImportObject(importFilePath, lineNumber, record, hff);
+            if (io != null) {
+                imports.add(io);
+            }
+        }
     }
 
     private ImportObject prepareImportObject(String importFilePath, int lineNumber, Record record, HotfolderFolder hff) {
@@ -262,7 +278,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     if (excelImport.shouldDeleteSourceFiles()) {
                         excelImport.deleteSourceFiles(hff, record);
                     }
-                } else {
+                } else { // processNew == null || processNew.getId() == null
                     io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
                     io.setImportReturnValue(ImportReturnValue.NoData);
                 }
