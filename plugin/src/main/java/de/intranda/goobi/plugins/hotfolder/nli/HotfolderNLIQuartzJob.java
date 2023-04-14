@@ -31,12 +31,15 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.HelperSchritte;
+import de.sub.goobi.helper.StorageProvider;
+import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private static String title = "intranda_administration_hotfolder_nli";
+    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
@@ -54,26 +57,26 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
 
-        if (!Files.exists(hotfolderPath)) {
+        if (!storageProvider.isFileExists(hotfolderPath)) {
             log.info("NLI hotfolder is not present: " + hotfolderPath);
             return;
         }
 
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
-        if (Files.exists(pauseFile)) {
+        if (storageProvider.isFileExists(pauseFile)) {
             log.info("NLI hotfolder is paused - not running");
             return;
         }
 
         Path lockFile = hotfolderPath.resolve("hotfolder_running.lock");
-        if (Files.exists(lockFile)) {
+        if (storageProvider.isFileExists(lockFile)) {
             log.info("NLI hotfolder is already running - not running a second time in parallel");
             return;
         }
 
         try {
             // set lock
-            Files.createFile(lockFile);
+            storageProvider.createFile(lockFile);
             log.info("NLI hotfolder: Starting import run");
 
             List<HotfolderFolder> importFolders = getImportFolders(hotfolderPath);
@@ -88,6 +91,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             // write result to a json file located at the hotfolderPath
             ObjectMapper om = new ObjectMapper();
             log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
+            // TODO: How to use StorageProviderInterface to replace Files in the following case?
             try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE)) {
                 om.writeValue(out, guiResults);
@@ -100,7 +104,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         } finally {
             log.info("NLI hotfolder: Done with import run. Deleting lockFile");
             try {
-                Files.deleteIfExists(lockFile);
+                if (storageProvider.isFileExists(lockFile)) {
+                    storageProvider.deleteFile(lockFile);
+                }
             } catch (IOException e) {
                 log.error("Error deleting NLI hotfolder lock file: {}", e);
             }
@@ -182,12 +188,13 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
      */
     private List<HotfolderFolder> traverseHotfolder(Path hotfolderPath) throws IOException {
         List<HotfolderFolder> stableBarcodeFolders = new ArrayList<>();
+        // TODO: What is a proper candidate in StorageProviderInstance for replacing Files::newDirectoryStream?
         try (DirectoryStream<Path> templatesDirStream = Files.newDirectoryStream(hotfolderPath)) {
             for (Path templatePath : templatesDirStream) {
-                if (Files.isDirectory(templatePath)) {
+                if (storageProvider.isDirectory(templatePath)) {
                     try (DirectoryStream<Path> projectsDirStream = Files.newDirectoryStream(templatePath)) {
                         for (Path projectPath : projectsDirStream) {
-                            if (Files.isDirectory(projectPath)) {
+                            if (storageProvider.isDirectory(projectPath)) {
                                 stableBarcodeFolders.add(new HotfolderFolder(projectPath, templatePath.getFileName().toString()));
                             }
                         }
