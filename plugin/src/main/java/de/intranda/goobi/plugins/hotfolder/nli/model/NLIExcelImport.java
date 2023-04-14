@@ -138,35 +138,27 @@ public class NLIExcelImport {
             Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
             Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
 
-            try {
-                // check mandatory fields
-                checkMandatoryFields(headerOrder, rowMap);
+            // check mandatory fields
+            checkMandatoryFields(headerOrder, rowMap);
 
-                // generate a mets file
-                ff = createFileformat(io, headerOrder, rowMap);
+            // generate a mets file
+            ff = createFileformat(io, headerOrder, rowMap);
 
-                // name the process:
-                currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
-                String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
+            // name the process:
+            currentIdentifier = getCellValue(config.getProcessHeaderName(), record);
+            String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
-                String fileName = nameProcess(processName, io);
-                // write mets file into import folder
-                ff.write(fileName);
+            String fileName = nameProcess(processName, io);
+            // write mets file into import folder
+            ff.write(fileName);
 
-                //                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
-                //                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
-                //                    this.currentIdentifier = io.getProcessTitle();
-                //                }
+            //                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
+            //                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
+            //                    this.currentIdentifier = io.getProcessTitle();
+            //                }
 
-                // copy the image to the import folder
-                importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
-
-            } catch (ImportException e) {
-                log.error(e.toString());
-                io.setErrorMessage(e.getMessage());
-                io.setImportReturnValue(ImportReturnValue.NoData);
-                return io;
-            }
+            // copy the image to the import folder
+            importFolder = copyImagesFromSourceToTempFolder(io, record, fileName, hff, getCellValue(config.getImagesHeaderName(), record));
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
@@ -175,34 +167,18 @@ public class NLIExcelImport {
                 io = replaceExistingProcess(io, ff, importFolder, record);
             }
 
+        } catch (ImportException e) {
+            log.error(e.toString());
+            io.setErrorMessage(e.getMessage());
+            io.setImportReturnValue(ImportReturnValue.NoData);
+            return io;
         } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException | IOException e) {
             io.setImportReturnValue(ImportReturnValue.WriteError);
             io.setErrorMessage(e.getMessage());
             return io;
         }
+
         return io;
-    }
-
-    private ImportObject replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
-        Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
-        if (existingProcess == null) {
-            return io;
-        }
-
-        // otherwise, try to replace the existing process
-        try {
-            writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
-            io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
-            io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
-            return io;
-        } catch (ImportException e) {
-            log.error(e);
-            io.setErrorMessage(e.getMessage());
-            io.setImportReturnValue(ImportReturnValue.NoData);
-            return io;
-        } finally {
-            deleteTempImportData(io);
-        }
     }
 
     public void deleteSourceFiles(HotfolderFolder hff, Record record) {
@@ -346,6 +322,37 @@ public class NLIExcelImport {
         }
 
         return true;
+    }
+
+    /**
+     * Checks that the given folder exists, hasn't been modified within the last 30 minutes and contains at least one (image) file and no symlinks or
+     * folders
+     * 
+     * @param imageSourceFolder
+     * @throws IOException if an error occured parsing the given folder
+     * @throws ImportException if any of the above conditions are met, meaning that the folder is not ready for import
+     */
+    private void checkImageSourceFolder(Path imageSourceFolder) throws IOException, ImportException {
+        if (!Files.exists(imageSourceFolder)) {
+            throw new ImportException("Image folder does not exist");
+        }
+        if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
+            throw new ImportException("Image folder has beend modified in the last 30 minutes");
+        }
+        try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
+            List<Path> allFiles = fileStream.collect(Collectors.toList());
+            if (allFiles.stream().filter(p -> Files.isRegularFile(p)).findAny().isEmpty()) {
+                throw new ImportException("Image folder does not contain any regular files");
+            }
+            if (!allFiles.stream().allMatch(p -> Files.isRegularFile(p))) {
+                throw new ImportException("Image folder contains folders or symlinks");
+            }
+        }
+    }
+
+    private Duration getSourceImageFolderModificationBlockTimeout() {
+        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
+        return Duration.of(minutes, ChronoUnit.MINUTES);
     }
 
     private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
@@ -723,35 +730,26 @@ public class NLIExcelImport {
 
     }
 
-    /**
-     * Checks that the given folder exists, hasn't been modified within the last 30 minutes and contains at least one (image) file and no symlinks or
-     * folders
-     * 
-     * @param imageSourceFolder
-     * @throws IOException if an error occured parsing the given folder
-     * @throws ImportException if any of the above conditions are met, meaning that the folder is not ready for import
-     */
-    private void checkImageSourceFolder(Path imageSourceFolder) throws IOException, ImportException {
-        if (!Files.exists(imageSourceFolder)) {
-            throw new ImportException("Image folder does not exist");
+    private ImportObject replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Record record) {
+        Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
+        if (existingProcess == null) {
+            return io;
         }
-        if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
-            throw new ImportException("Image folder has beend modified in the last 30 minutes");
-        }
-        try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
-            List<Path> allFiles = fileStream.collect(Collectors.toList());
-            if (allFiles.stream().filter(p -> Files.isRegularFile(p)).findAny().isEmpty()) {
-                throw new ImportException("Image folder does not contain any regular files");
-            }
-            if (!allFiles.stream().allMatch(p -> Files.isRegularFile(p))) {
-                throw new ImportException("Image folder contains folders or symlinks");
-            }
-        }
-    }
 
-    private Duration getSourceImageFolderModificationBlockTimeout() {
-        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
-        return Duration.of(minutes, ChronoUnit.MINUTES);
+        // otherwise, try to replace the existing process
+        try {
+            writeToExistingProcess(io, ff, importFolder, existingProcess, getCellValue(config.getImagesHeaderName(), record));
+            io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
+            io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
+            return io;
+        } catch (ImportException e) {
+            log.error(e);
+            io.setErrorMessage(e.getMessage());
+            io.setImportReturnValue(ImportReturnValue.NoData);
+            return io;
+        } finally {
+            deleteTempImportData(io);
+        }
     }
 
     private String nameProcess(String processTitle, ImportObject io) {
