@@ -91,10 +91,18 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             // write result to a json file located at the hotfolderPath
             ObjectMapper om = new ObjectMapper();
             log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
+
             // TODO: How to use StorageProviderInterface to replace Files in the following case?
+            String lastResult = new String(storageProvider.newInputStream(hotfolderPath.resolve("lastRunResults.json")).readAllBytes());
+            lastResult = ",\n" + lastResult.substring(1);
+            log.debug("lastResult = " + lastResult);
             try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE)) {
-                om.writeValue(out, guiResults);
+                out.write("[".getBytes());
+                // new results come first
+                out.write(om.writeValueAsBytes(guiResults));
+                // append old results
+                out.write(lastResult.getBytes());
             }
 
         } catch (Exception e) {

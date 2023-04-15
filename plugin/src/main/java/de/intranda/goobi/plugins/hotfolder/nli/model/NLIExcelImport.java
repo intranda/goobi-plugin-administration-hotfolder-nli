@@ -166,6 +166,7 @@ public class NLIExcelImport {
             if (importImageFolder == null) {
                 // there is nothing valid to import
                 log.debug("no valid files to import, aborting without creating empty processes");
+                io.setErrorMessage("no valid files to import");
                 io.setImportReturnValue(ImportReturnValue.NoData);
                 return io;
             }

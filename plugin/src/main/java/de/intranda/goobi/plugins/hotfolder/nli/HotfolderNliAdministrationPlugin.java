@@ -17,6 +17,7 @@ import org.goobi.production.enums.PluginType;
 import org.goobi.production.plugin.interfaces.IAdministrationPlugin;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +34,20 @@ import net.xeoh.plugins.base.annotations.PluginImplementation;
 @Log4j2
 public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     private static ObjectMapper om = new ObjectMapper();
+
+    private static TypeReference<List<List<GUIImportResult>>> typeReferenceOfList = new TypeReference<>() {
+    };
+
     private static JavaType lastRunInfoListType = om.getTypeFactory().constructCollectionType(List.class, GUIImportResult.class);
+    //    private static JavaType listOfLastRunInfoListType = om.getTypeFactory().constructCollectionType(List.class, lastRunInfoListType);
+    //
+    //    private static Gson gson = new Gson();
+    //    private Type runInfoListType = new TypeToken<ArrayList<GUIImportResult>>() {
+    //    }.getType();
+
+    //    Type runInfoListType = new TypeToken<ArrayList<GUIImportResult>>() {
+    //    }.getType();
+
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     private Path hotfolderPath;
@@ -133,7 +147,13 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
             // clearing up old entries and reload from the json file
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
             try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
-                List<GUIImportResult> results = om.readValue(src, lastRunInfoListType);
+
+                //                List<GUIImportResult> results = om.readValue(src, typeReference);
+
+                List<List<GUIImportResult>> listOfResults = om.readValue(src, typeReferenceOfList);
+                List<GUIImportResult> results = listOfResults.get(0);
+                log.debug("listOfResults.size() = " + listOfResults.size());
+
                 // add all GUI results accordingly
                 for (GUIImportResult guiResult : results) {
                     Path absPath = Paths.get(guiResult.getImportFileName());
