@@ -367,7 +367,7 @@ public class NLIExcelImport {
         Instant lastModifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(imageSourceFolder));
         if (lastModifiedInstant.isAfter(Instant.now().minus(blockTimeoutDuration))) {
             log.debug("Image folder has been modified in the last {} minutes", minutes);
-            throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
+            //            throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
         }
 
         // TODO: How to use StorageProviderInterface to replace Files in the following cases?
@@ -803,8 +803,6 @@ public class NLIExcelImport {
             return rowCounter;
         }
         for (int cn = 0; cn < lastColumn; cn++) {
-            //                while (cellIterator.hasNext()) {
-            //                    Cell cell = cellIterator.next();
             Cell cell = row.getCell(cn, MissingCellPolicy.CREATE_NULL_AS_BLANK);
             String value = "";
             switch (cell.getCellType()) {
@@ -812,7 +810,6 @@ public class NLIExcelImport {
                     value = cell.getBooleanCellValue() ? "true" : "false";
                     break;
                 case FORMULA:
-                    //                            value = cell.getCellFormula();
                     value = cell.getRichStringCellValue().getString();
                     break;
                 case NUMERIC:
@@ -890,8 +887,6 @@ public class NLIExcelImport {
 
     public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
-
-        //        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 
         xmlConfig.setExpressionEngine(new XPathExpressionEngine());
         xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
