@@ -361,10 +361,13 @@ public class NLIExcelImport {
             throw new ImportException("Image folder does not exist");
         }
 
-        // TODO: How should we use StorageProviderInterface::getLastModifiedDate to replace the following one?
-        if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
-            log.debug("Image folder has beend modified in the last 30 minutes");
-            //            throw new ImportException("Image folder has beend modified in the last 30 minutes");
+        // check the last modification time of imageSourceFolder to see if the configured block timeout is over
+        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
+        Duration blockTimeoutDuration = Duration.of(minutes, ChronoUnit.MINUTES);
+        Instant lastModifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(imageSourceFolder));
+        if (lastModifiedInstant.isAfter(Instant.now().minus(blockTimeoutDuration))) {
+            log.debug("Image folder has been modified in the last {} minutes", minutes);
+            throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
         }
 
         // TODO: How to use StorageProviderInterface to replace Files in the following cases?
@@ -377,11 +380,6 @@ public class NLIExcelImport {
                 throw new ImportException("Image folder contains folders or symlinks");
             }
         }
-    }
-
-    private Duration getSourceImageFolderModificationBlockTimeout() {
-        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
-        return Duration.of(minutes, ChronoUnit.MINUTES);
     }
 
     private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
