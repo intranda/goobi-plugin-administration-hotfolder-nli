@@ -13,6 +13,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,11 @@ public class NLIExcelImport {
 
     private NLIExcelConfig config;
     private Process template;
+
+    // set of folders that contain files of invalid suffices
+    private HashSet<Path> dirtyFolderSet = new HashSet<>();
+    // set of files that are of invalid suffices
+    private HashSet<Path> invalidFileSet = new HashSet<>();
 
     public NLIExcelImport(HotfolderFolder hff) {
 
@@ -198,9 +204,24 @@ public class NLIExcelImport {
         try {
             sourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
             if (sourceFolder != null && storageProvider.isFileExists(sourceFolder)) {
+                // delete all valid files from dirty folders
+                if (dirtyFolderSet.contains(sourceFolder)) {
+                    for (Path filePath : storageProvider.listFiles(sourceFolder.toString())) {
+                        if (!invalidFileSet.contains(filePath)) {
+                            storageProvider.deleteFile(filePath);
+                        }
+                    }
+                    if (!storageProvider.listFiles(sourceFolder.toString()).isEmpty()) {
+                        // there are still some invalid files in this source folder, do not delete them
+                        return;
+                    }
+                }
+                // in any other cases, source folder is not a dirty folder, even if it was
+                dirtyFolderSet.remove(sourceFolder);
+                // delete the directory, no matter it is empty or not
                 storageProvider.deleteDir(sourceFolder);
             }
-        } catch (ImportException e) {
+        } catch (ImportException | IOException e) {
             log.error(e.getMessage(), e);
         }
     }
@@ -320,12 +341,11 @@ public class NLIExcelImport {
             imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
             io.setImportFileName(imageSourceFolder.toString());
             checkImageSourceFolder(imageSourceFolder);
+            return true;
         } catch (ImportException e) {
             log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
             return false;
         }
-
-        return true;
     }
 
     /**
@@ -731,7 +751,9 @@ public class NLIExcelImport {
                 storageProvider.copyFile(currentData, Paths.get(copyToDirectory, newFilename));
             } else { // if files do not have allowed suffices, then try to report this instead of making empty processes
                 String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
-                log.debug("suffix = " + suffix);
+                log.debug("The file named '{}' has an invalid suffix: {} ", fileName, suffix);
+                dirtyFolderSet.add(sourceImageFolder);
+                invalidFileSet.add(currentData);
             }
         }
     }
