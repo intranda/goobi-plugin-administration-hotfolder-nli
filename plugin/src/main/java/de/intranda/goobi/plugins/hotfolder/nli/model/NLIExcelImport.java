@@ -97,6 +97,8 @@ public class NLIExcelImport {
 
         // by default /opt/digiverso/goobi/tmp/
         importFolder = ConfigurationHelper.getInstance().getTemporaryFolder();
+        // prepare import folder if not available yet
+        prepareImportFolder(importFolder);
 
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.FILE);
@@ -113,8 +115,7 @@ public class NLIExcelImport {
 
     @SuppressWarnings("unchecked")
     public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff) {
-
-        //reset the template if necessary:
+        // reset the template if necessary:
         if (!hff.getTemplateName().equals(workflowTitle)) {
             workflowTitle = hff.getTemplateName();
             config = null;
@@ -147,6 +148,7 @@ public class NLIExcelImport {
             String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
             String fileName = nameProcess(processName, io);
+
             // write mets file into import folder
             ff.write(fileName);
 
@@ -157,6 +159,7 @@ public class NLIExcelImport {
 
             // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
             Path importImageFolder = copyImagesFromSourceToTempFolder(io, fileName, hff, headerOrder, rowMap);
+            log.debug("importImageFolder = " + importImageFolder);
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
@@ -171,6 +174,7 @@ public class NLIExcelImport {
             io.setImportReturnValue(ImportReturnValue.NoData);
             return io;
         } catch (WriteException | PreferencesException | MetadataTypeNotAllowedException | TypeNotAllowedForParentException | IOException e) {
+            log.error(e.toString());
             io.setImportReturnValue(ImportReturnValue.WriteError);
             io.setErrorMessage(e.getMessage());
             return io;
@@ -417,6 +421,7 @@ public class NLIExcelImport {
             mdColl.setValue(col);
             logical.addMetadata(mdColl);
         }
+
         return ff;
     }
 
@@ -625,6 +630,29 @@ public class NLIExcelImport {
         return rowMap.get(headerOrder.get(column));
     }
 
+    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Map<String, Integer> headerOrder,
+            Map<Integer, String> rowMap) {
+
+        Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
+        if (existingProcess == null) {
+            return;
+        }
+
+        // otherwise, try to replace the existing process
+        try {
+            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            writeToExistingProcess(ff, importFolder, existingProcess, fileNamePrefix);
+            io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
+            io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
+        } catch (ImportException e) {
+            log.error(e);
+            io.setErrorMessage(e.getMessage());
+            io.setImportReturnValue(ImportReturnValue.NoData);
+        } finally {
+            deleteTempImportData(io);
+        }
+    }
+
     private void writeToExistingProcess(Fileformat ff, Path importFolder, Process existingProcess, String fileNamePrefix)
             throws ImportException {
         try {
@@ -725,28 +753,6 @@ public class NLIExcelImport {
 
     }
 
-    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Map<String, Integer> headerOrder,
-            Map<Integer, String> rowMap) {
-        Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
-        if (existingProcess == null) {
-            return;
-        }
-
-        // otherwise, try to replace the existing process
-        try {
-            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
-            writeToExistingProcess(ff, importFolder, existingProcess, fileNamePrefix);
-            io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
-            io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
-        } catch (ImportException e) {
-            log.error(e);
-            io.setErrorMessage(e.getMessage());
-            io.setImportReturnValue(ImportReturnValue.NoData);
-        } finally {
-            deleteTempImportData(io);
-        }
-    }
-
     private String nameProcess(String processTitle, ImportObject io) {
         // set new process title
         String fileName = importFolder + File.separator + processTitle + ".xml";
@@ -806,6 +812,18 @@ public class NLIExcelImport {
             }
         }
         return rowCounter;
+    }
+
+    private void prepareImportFolder(String folderPathString) {
+        log.debug("perparing import folder: " + folderPathString);
+        Path folderPath = Path.of(folderPathString);
+        if (!storageProvider.isFileExists(folderPath)) {
+            try {
+                storageProvider.createDirectories(folderPath);
+            } catch (IOException e) {
+                log.error("Errors happended trying to create the folder " + folderPathString);
+            }
+        }
     }
 
     /**
