@@ -87,6 +87,8 @@ public class NLIExcelImport {
     private static String title = "intranda_administration_hotfolder_nli";
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
+    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub|jpe?g)";
+
     private List<ImportType> importTypes;
     private String workflowTitle;
 
@@ -152,19 +154,21 @@ public class NLIExcelImport {
             // write mets file into import folder
             ff.write(fileName);
 
-            //                this.currentIdentifier = getCellValue(config.getImagesHeaderName(), record);
-            //                if (this.currentIdentifier == null || this.currentIdentifier.isEmpty()) {
-            //                    this.currentIdentifier = io.getProcessTitle();
-            //                }
-
             // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
             Path importImageFolder = copyImagesFromSourceToTempFolder(io, fileName, hff, headerOrder, rowMap);
             log.debug("importImageFolder = " + importImageFolder);
+            if (importImageFolder == null) {
+                // there is nothing valid to import
+                log.debug("no valid files to import, aborting without creating empty processes");
+                io.setImportReturnValue(ImportReturnValue.NoData);
+                return io;
+            }
 
             io.setImportReturnValue(ImportReturnValue.ExportFinished);
 
             // check if the process exists
             if (replaceExisting) {
+                // ImportReturnValue might be changed by the following statement
                 replaceExistingProcess(io, ff, importImageFolder, headerOrder, rowMap);
             }
 
@@ -339,7 +343,8 @@ public class NLIExcelImport {
 
         // TODO: How should we use StorageProviderInterface::getLastModifiedDate to replace the following one?
         if (Files.getLastModifiedTime(imageSourceFolder).toInstant().isAfter(Instant.now().minus(getSourceImageFolderModificationBlockTimeout()))) {
-            throw new ImportException("Image folder has beend modified in the last 30 minutes");
+            log.debug("Image folder has beend modified in the last 30 minutes");
+            //            throw new ImportException("Image folder has beend modified in the last 30 minutes");
         }
 
         // TODO: How to use StorageProviderInterface to replace Files in the following cases?
@@ -611,6 +616,10 @@ public class NLIExcelImport {
             Path path = Paths.get(foldername, "images", folderNameRule);
             String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
             copyImagesToFolder(imageSourceFolder, path.toString(), fileNamePrefix);
+            // check if there are any files copied to path, and if not, return null to signify this
+            if (storageProvider.listFiles(path.toString()).isEmpty()) {
+                return null;
+            }
             return Paths.get(foldername);
         } else {
             throw new ImportException("No images to copy: Image source folder " + imageSourceFolder + " does not exist");
@@ -712,7 +721,7 @@ public class NLIExcelImport {
                 Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
                 storageProvider.createDirectories(targetDir);
                 storageProvider.copyDirectory(currentData, targetDir);
-            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(".*\\.(tiff?|pdf|epub)")) {
+            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(ALLOWED_FILE_SUFFIX_PATTERN)) {
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
                     String number = String.format("%04d", iNumber);
@@ -720,6 +729,9 @@ public class NLIExcelImport {
                 }
                 iNumber++;
                 storageProvider.copyFile(currentData, Paths.get(copyToDirectory, newFilename));
+            } else { // if files do not have allowed suffices, then try to report this instead of making empty processes
+                String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+                log.debug("suffix = " + suffix);
             }
         }
     }
