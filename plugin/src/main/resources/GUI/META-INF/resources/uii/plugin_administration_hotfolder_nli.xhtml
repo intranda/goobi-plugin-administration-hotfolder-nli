@@ -80,7 +80,6 @@
 					</div>
                     
                     
-                    
                     <div class="box box-color box-bordered blue" jsf:id="runInfoBox" jsf:rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
                         <div class="box-title">
                             <h3>
@@ -89,32 +88,77 @@
                             </h3>
                         </div>
                         <div class="box-content">
+	                                	<!-- 
+	                                    <h:inputText value="#{AdministrationForm.administrationPlugin.number}" />
+	                                    -->
+	                            <button jsf:action="#{AdministrationForm.administrationPlugin.previousNumber}">Backwards
+	                                <f:ajax render="runInfoBox" />
+	                            </button>
+	                            <button jsf:action="#{AdministrationForm.administrationPlugin.nextNumber}">Forwards
+	                                <f:ajax render="runInfoBox" />
+	                            </button>
+	                            
+                        
                             <ui:repeat var="folder" value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
-                            <div>
-                                <h4 style="display: inline;">#{folder}</h4>
-                                <button class="btn pull-right" jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
-                                    <h:outputText value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
-                                    <f:ajax render="runInfoBox" />
-                                </button>
-                            </div>
-                            <hr />
-                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
-                                <thead>
-                                    <tr>
-                                        <th>Process</th>
-                                        <th>Result</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <ui:repeat var="io" value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
-                                    <tr>
-                                        <td>#{io.importFileName}</td>
-                                        <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
-                                    </tr>
-                                    </ui:repeat>
-                                </tbody>
-                            </table>
+                                <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
+	                            <div>
+	                                <h4 style="display: inline;">#{folder}</h4>                         
+	                                <button class="btn pull-right" jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
+	                                    <h:outputText value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
+	                                    <f:ajax render="runInfoBox" />
+	                                </button>
+	                            </div>
+	                            <!-- // Template name / Hotfolder name and button -->
+	                            <hr />
+	                            <!-- Table of error logs from the last run -->
+	                            
+	                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
+	                                <thead>
+	                                    <tr>
+	                                        <th>Process</th>
+	                                        <th>Result</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>
+	                                    <ui:repeat var="io" value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
+	                                    <tr>
+	                                        <td>#{io.importFileName}</td>
+	                                        <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
+	                                    </tr>
+	                                    </ui:repeat>
+	                                </tbody>
+	                            </table>
+	                            
+	                            <!-- // Table -->
+	                            
+	                            <!-- 
+	                            <ui:repeat var="list" value="#{AdministrationForm.administrationPlugin.previousRunInfo[folder]}">
+	                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
+	                                <thead>
+	                                    <tr>
+	                                        <th>Process</th>
+	                                        <th>Result</th>
+	                                    </tr>
+	                                </thead>
+	                                <tbody>
+	                                    
+	                                        <ui:repeat var="io" value="#{list}">
+		                                        <tr>
+		                                            <td>#{io.importFileName}</td>
+		                                            <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
+		                                        </tr>
+	                                        </ui:repeat>
+
+
+	                                    
+	                                </tbody>
+	                            </table>
+	                            
+	                            </ui:repeat>
+	                            -->
+	                            
                             </ui:repeat>
+                            
                         </div>
                     </div>
 				</div>
