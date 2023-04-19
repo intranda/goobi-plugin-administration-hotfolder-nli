@@ -53,6 +53,8 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     // information about the last run
     private Map<String, List<GUIImportResult>> lastRunInfo;
 
+    private List<List<GUIImportResult>> listOfResults = new ArrayList<>();
+
     // controls whether or not to show folders
     @Getter
     private Map<String, Boolean> showFolders = new HashMap<>();
@@ -127,7 +129,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         return this.lastRunInfo;
     }
 
-    public void loadLastRunInfo() throws JsonParseException, JsonMappingException, IOException {
+    private void loadLastRunInfo() throws JsonParseException, JsonMappingException, IOException {
         lastRunInfoLoadTime = Instant.now();
         Path lastRunInfoPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
         if (!storageProvider.isFileExists(lastRunInfoPath)) {
@@ -135,45 +137,53 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
             return;
         }
 
+        updateListOfResults(lastRunInfoPath);
+        log.debug("listOfResults.size() = " + listOfResults.size());
+        // assure that the number is not out of range
+        number = Math.max(number, 0);
+        number = Math.min(number, listOfResults.size() - 1);
+
+        List<GUIImportResult> results = listOfResults.get(number);
+
+        // clearing up old entries and reload from the json file
+        lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
+
+        // add all GUI results accordingly
+        for (GUIImportResult guiResult : results) {
+            Path absPath = Paths.get(guiResult.getImportFileName());
+            String key = hotfolderPath.relativize(absPath.getParent()).toString();
+
+            // get the list stored in lastRunInfo associated with key
+            List<GUIImportResult> keyResults = lastRunInfo.get(key);
+            // if key does not exist yet in lastRunInfo, add it and associate it with an empty list
+            if (keyResults == null) {
+                keyResults = new ArrayList<>();
+                lastRunInfo.put(key, keyResults);
+                // do not show any folders in the beginning
+                if (showFolders.get(key) == null) {
+                    showFolders.put(key, false);
+                }
+            }
+            // add result to this list
+            keyResults.add(guiResult);
+        }
+    }
+
+    private void updateListOfResults(Path lastRunInfoPath) throws IOException {
         // the instant of the last modifications made to the json file, signifying modifications in some hotfolder
         Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lastRunInfoPath));
 
         // check if any modifications happened after lastRunInfoModified, if so then the field lastRunInfo should be updated
-        if (numberUpdated || lastRunInfoModified == null || lastModified.isAfter(lastRunInfoModified)) {
-            // clearing up old entries and reload from the json file
-            lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
+        if (lastRunInfoModified == null || lastModified.isAfter(lastRunInfoModified)) {
             try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
-
-                List<List<GUIImportResult>> listOfResults = om.readValue(src, typeReferenceOfList);
-                List<GUIImportResult> results = listOfResults.get(this.number);
-                log.debug("listOfResults.size() = " + listOfResults.size());
-
-                // add all GUI results accordingly
-                for (GUIImportResult guiResult : results) {
-                    Path absPath = Paths.get(guiResult.getImportFileName());
-                    String key = hotfolderPath.relativize(absPath.getParent()).toString();
-
-                    // get the list stored in lastRunInfo associated with key
-                    List<GUIImportResult> keyResults = this.lastRunInfo.get(key);
-                    // if key does not exist yet in lastRunInfo, add it and associate it with an empty list
-                    if (keyResults == null) {
-                        keyResults = new ArrayList<>();
-                        this.lastRunInfo.put(key, keyResults);
-                        // do not show any folders in the beginning
-                        if (this.showFolders.get(key) == null) {
-                            this.showFolders.put(key, false);
-                        }
-                    }
-                    // add result to this list
-                    keyResults.add(guiResult);
-                }
+                listOfResults = om.readValue(src, typeReferenceOfList);
             }
             lastRunInfoModified = lastModified;
         }
     }
 
     public void toggleShowFolder(String folder) {
-        this.showFolders.put(folder, !this.showFolders.get(folder));
+        showFolders.put(folder, !showFolders.get(folder));
     }
 
     public int getNumber() {
