@@ -329,6 +329,11 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     private String getReducedPreviousRunInfos(Path resultsJsonPath, int allowedNumberOfLogs) throws IOException {
+        if (!storageProvider.isFileExists(resultsJsonPath)) {
+            storageProvider.createFile(resultsJsonPath);
+            return "]";
+        }
+
         if (allowedNumberOfLogs <= 1) {
             return "]";
         }
