@@ -41,6 +41,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private static String title = "intranda_administration_hotfolder_nli";
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
+    private static final String RESULTS_JSON_FILENAME = "lastRunResults.json";
+
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
 
@@ -56,6 +58,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     public void execute(JobExecutionContext jec) throws JobExecutionException {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
+        // assure that allowedNumberOfLogs is at least 1
+        int allowedNumberOfLogs = Math.max(config.getInt("allowedNumberOfLogs", 1), 1);
 
         if (!storageProvider.isFileExists(hotfolderPath)) {
             log.info("NLI hotfolder is not present: " + hotfolderPath);
@@ -84,6 +88,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             // create an ImportObject instance for every folder in the importFolders
             List<ImportObject> imports = createProcesses(importFolders);
             log.info("NLI hotfolder: Created processes. " + imports.size() + "import objects were created");
+
             List<GUIImportResult> guiResults = imports.stream()
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
@@ -92,17 +97,19 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             ObjectMapper om = new ObjectMapper();
             log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
 
+            Path resultsJsonPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
+
+            String reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
+            log.debug("reducedLastResult = " + reducedLastResult);
+
             // TODO: How to use StorageProviderInterface to replace Files in the following case?
-            String lastResult = new String(storageProvider.newInputStream(hotfolderPath.resolve("lastRunResults.json")).readAllBytes());
-            lastResult = ",\n" + lastResult.substring(1);
-            log.debug("lastResult = " + lastResult);
-            try (OutputStream out = Files.newOutputStream(hotfolderPath.resolve("lastRunResults.json"), StandardOpenOption.TRUNCATE_EXISTING,
+            try (OutputStream out = Files.newOutputStream(resultsJsonPath, StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE)) {
                 out.write("[".getBytes());
                 // new results come first
                 out.write(om.writeValueAsBytes(guiResults));
                 // append old results
-                out.write(lastResult.getBytes());
+                out.write(reducedLastResult.getBytes());
             }
 
         } catch (Exception e) {
@@ -319,6 +326,42 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         return io;
+    }
+
+    private String getReducedPreviousRunInfos(Path resultsJsonPath, int allowedNumberOfLogs) throws IOException {
+        if (allowedNumberOfLogs <= 1) {
+            return "]";
+        }
+
+        // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
+        String lastResults = new String(storageProvider.newInputStream(resultsJsonPath).readAllBytes());
+        lastResults = ",\n" + lastResults.substring(1);
+        log.debug("lastResult = " + lastResults);
+
+        // use StringBuilder and count the number of [
+        StringBuilder sb = new StringBuilder();
+
+        int numberOfLogs = 0;
+        boolean startingNewLog = false;
+        for (String s : lastResults.split("")) {
+            if (s.equals("[")) {
+                numberOfLogs += 1;
+                startingNewLog = true;
+            }
+
+            sb.append(s);
+
+            if (startingNewLog && s.equals("]")) {
+                startingNewLog = false;
+                if (numberOfLogs == allowedNumberOfLogs - 1) {
+                    // time to cut out the tail
+                    sb.append("]");
+                    break;
+                }
+            }
+        }
+
+        return sb.toString();
     }
 
 }
