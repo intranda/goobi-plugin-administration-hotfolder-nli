@@ -110,8 +110,7 @@
 	                            </div>
 	                            <!-- // Template name / Hotfolder name and button -->
 	                            <hr />
-	                            <!-- Table of error logs from the last run -->
-	                            
+	                            <!-- Table of error logs from the last run -->                            
 	                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
 	                                <thead>
 	                                    <tr>
@@ -127,35 +126,8 @@
 	                                    </tr>
 	                                    </ui:repeat>
 	                                </tbody>
-	                            </table>
-	                            
+	                            </table>	                            
 	                            <!-- // Table -->
-	                            
-	                            <!-- 
-	                            <ui:repeat var="list" value="#{AdministrationForm.administrationPlugin.previousRunInfo[folder]}">
-	                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
-	                                <thead>
-	                                    <tr>
-	                                        <th>Process</th>
-	                                        <th>Result</th>
-	                                    </tr>
-	                                </thead>
-	                                <tbody>
-	                                    
-	                                        <ui:repeat var="io" value="#{list}">
-		                                        <tr>
-		                                            <td>#{io.importFileName}</td>
-		                                            <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
-		                                        </tr>
-	                                        </ui:repeat>
-
-
-	                                    
-	                                </tbody>
-	                            </table>
-	                            
-	                            </ui:repeat>
-	                            -->
 	                            
                             </ui:repeat>
                             

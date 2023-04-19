@@ -18,7 +18,6 @@ import org.goobi.production.plugin.interfaces.IAdministrationPlugin;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,16 +37,6 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     private static TypeReference<List<List<GUIImportResult>>> typeReferenceOfList = new TypeReference<>() {
     };
 
-    private static JavaType lastRunInfoListType = om.getTypeFactory().constructCollectionType(List.class, GUIImportResult.class);
-    //    private static JavaType listOfLastRunInfoListType = om.getTypeFactory().constructCollectionType(List.class, lastRunInfoListType);
-    //
-    //    private static Gson gson = new Gson();
-    //    private Type runInfoListType = new TypeToken<ArrayList<GUIImportResult>>() {
-    //    }.getType();
-
-    //    Type runInfoListType = new TypeToken<ArrayList<GUIImportResult>>() {
-    //    }.getType();
-
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     private static final String RESULTS_JSON_FILENAME = "lastRunResults.json";
@@ -63,9 +52,6 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
     // information about the last run
     private Map<String, List<GUIImportResult>> lastRunInfo;
-
-    // information about all previous runs
-    private Map<String, List<List<GUIImportResult>>> previousRunInfo;
 
     // controls whether or not to show folders
     @Getter
@@ -132,118 +118,6 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         }
     }
 
-    //    public Map<String, List<List<GUIImportResult>>> getPreviousRunInfo() throws IOException {
-    //        log.debug("number = ", number);
-    //        if (this.lastRunInfoLoadTime == null || Instant.now().minus(Duration.ofSeconds(30)).isAfter(lastRunInfoLoadTime)) {
-    //            loadPreviousRunInfo();
-    //        }
-    //
-    //        return this.previousRunInfo;
-    //    }
-    //
-    //    public void loadPreviousRunInfo() throws IOException {
-    //        lastRunInfoLoadTime = Instant.now();
-    //        Path lastRunInfoPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
-    //        if (!storageProvider.isFileExists(lastRunInfoPath)) {
-    //            lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
-    //            return;
-    //        }
-    //
-    //        // the instant of the last modifications made to the json file, signifying modifications in some hotfolder
-    //        Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lastRunInfoPath));
-    //
-    //        // check if any modifications happened after lastRunInfoModified, if so then the field lastRunInfo should be updated
-    //        if (this.lastRunInfoModified == null || lastModified.isAfter(this.lastRunInfoModified)) {
-    //            // clearing up old entries and reload from the json file
-    //            previousRunInfo = new LinkedHashMap<String, List<List<GUIImportResult>>>();
-    //            try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
-    //
-    //                //                List<GUIImportResult> results = om.readValue(src, typeReference);
-    //
-    //                List<List<GUIImportResult>> listOfResults = om.readValue(src, typeReferenceOfList);
-    //                //                List<GUIImportResult> results = listOfResults.get(0);
-    //                //                log.debug("listOfResults.size() = " + listOfResults.size());
-    //
-    //                for (List<GUIImportResult> results : listOfResults) {
-    //                    // get a map between key and List<GUIImportResult> among results
-    //                    Map<String, List<GUIImportResult>> keyResults = getKeyResults(results);
-    //
-    //                    log.debug("keyResults = ");
-    //                    log.debug(keyResults);
-    //
-    //                    for (GUIImportResult guiResult : results) {
-    //                        Path absPath = Paths.get(guiResult.getImportFileName());
-    //                        String key = hotfolderPath.relativize(absPath.getParent()).toString();
-    //
-    //                        // get the list stored in lastRunInfo associated with key
-    //                        List<List<GUIImportResult>> keyListOfResults = this.previousRunInfo.get(key);
-    //                        // if key does not exist yet in lastRunInfo, add it and associate it with an empty list
-    //                        if (keyListOfResults == null) {
-    //                            keyListOfResults = new ArrayList<>();
-    //                            this.previousRunInfo.put(key, keyListOfResults);
-    //                            // do not show any folders in the beginning
-    //                            if (this.showFolders.get(key) == null) {
-    //                                this.showFolders.put(key, false);
-    //                            }
-    //                        }
-    //                    }
-//
-    //                    for (Map.Entry<String, List<List<GUIImportResult>>> entry : this.previousRunInfo.entrySet()) {
-    //                        String key = entry.getKey();
-    //                        List<GUIImportResult> result = keyResults.get(key);
-    //                        if (result == null) {
-    //                            result = new ArrayList<>();
-//                        }
-    //                        entry.getValue().add(result);
-//                    }
-//                }
-//            }
-//
-////                // add all GUI results accordingly
-////                for (GUIImportResult guiResult : results) {
-////                    Path absPath = Paths.get(guiResult.getImportFileName());
-////                    String key = hotfolderPath.relativize(absPath.getParent()).toString();
-////
-////                    // get the list stored in lastRunInfo associated with key
-////                    List<GUIImportResult> keyResults = this.lastRunInfo.get(key);
-////                    // if key does not exist yet in lastRunInfo, add it and associate it with an empty list
-////                    if (keyResults == null) {
-////                        keyResults = new ArrayList<>();
-////                        this.lastRunInfo.put(key, keyResults);
-////                        // do not show any folders in the beginning
-////                        if (this.showFolders.get(key) == null) {
-////                            this.showFolders.put(key, false);
-////                        }
-////                    }
-////                    // add result to this list
-////                    keyResults.add(guiResult);
-////                }
-////            }
-//            lastRunInfoModified = lastModified;
-//        }
-//    }
-//
-//    public Map<String, List<GUIImportResult>> getKeyResults(List<GUIImportResult> results) {
-//        Map<String, List<GUIImportResult>> map = new HashMap<>();
-//
-//        for (GUIImportResult guiResult : results) {
-//            Path absPath = Paths.get(guiResult.getImportFileName());
-//            String key = hotfolderPath.relativize(absPath.getParent()).toString();
-//
-//            // get the list stored in lastRunInfo associated with key
-//            List<GUIImportResult> keyResults = map.get(key);
-//            // if key does not exist yet in the map, add it and associate it with an empty list
-//            if (keyResults == null) {
-//                keyResults = new ArrayList<>();
-//                map.put(key, keyResults);
-//          }
-//            // add result to this list
-//            keyResults.add(guiResult);
-//        }
-//
-//        return map;
-//    }
-
     public Map<String, List<GUIImportResult>> getLastRunInfo() throws JsonParseException, JsonMappingException, IOException {
         if (numberUpdated || lastRunInfoLoadTime == null || Instant.now().minus(Duration.ofSeconds(30)).isAfter(lastRunInfoLoadTime)) {
             loadLastRunInfo();
@@ -265,13 +139,10 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(lastRunInfoPath));
 
         // check if any modifications happened after lastRunInfoModified, if so then the field lastRunInfo should be updated
-        //        if (this.lastRunInfoModified == null || lastModified.isAfter(this.lastRunInfoModified)) {
         if (numberUpdated || lastRunInfoModified == null || lastModified.isAfter(lastRunInfoModified)) {
             // clearing up old entries and reload from the json file
             lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
             try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
-
-                //                List<GUIImportResult> results = om.readValue(src, typeReference);
 
                 List<List<GUIImportResult>> listOfResults = om.readValue(src, typeReferenceOfList);
                 List<GUIImportResult> results = listOfResults.get(this.number);
