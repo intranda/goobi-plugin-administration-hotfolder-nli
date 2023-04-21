@@ -335,6 +335,16 @@ public class NLIExcelImport {
 
     // ======= private methods ======= //
 
+    /**
+     * import the image source folder
+     * 
+     * @param io ImportObject, which will be modified
+     * @param hff HotfolderFolder
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return true if the image source folder is successfully imported, false otherwise
+     * @throws IOException
+     */
     private boolean importImageSourceFolder(ImportObject io, HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws IOException {
         Path imageSourceFolder = null;
@@ -353,7 +363,7 @@ public class NLIExcelImport {
      * Checks that the given folder exists, hasn't been modified within the last 30 minutes and contains at least one (image) file and no symlinks or
      * folders
      * 
-     * @param imageSourceFolder
+     * @param imageSourceFolder path to the image source folder
      * @throws IOException if an error occured parsing the given folder
      * @throws ImportException if any of the above conditions are met, meaning that the folder is not ready for import
      */
@@ -383,6 +393,13 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * check if all mandatory fields are correctly set
+     * 
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @throws ImportException
+     */
     private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
         for (MetadataMappingObject mmo : config.getMetadataList()) {
             if (mmo.isMandatory()) {
@@ -394,6 +411,18 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * create a Fileformat object
+     * 
+     * @param io ImportObject, which will be modified
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return Fileformat object that is created
+     * @throws PreferencesException
+     * @throws TypeNotAllowedForParentException
+     * @throws MetadataTypeNotAllowedException
+     * @throws ImportException
+     */
     private Fileformat createFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
         Fileformat ff = initializeFileformat(headerOrder, rowMap);
@@ -407,6 +436,17 @@ public class NLIExcelImport {
         return ff;
     }
 
+    /**
+     * initialize a Fileformat object
+     * 
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return Fileformat object that is initialized
+     * @throws PreferencesException
+     * @throws TypeNotAllowedForParentException
+     * @throws MetadataTypeNotAllowedException
+     * @throws ImportException
+     */
     private Fileformat initializeFileformat(Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
         DigitalDocument digitalDocument = null;
@@ -422,7 +462,7 @@ public class NLIExcelImport {
             logical = digitalDocument.createDocStruct(logicalType);
             digitalDocument.setLogicalDocStruct(logical);
         } else {
-            ff = getRecordFromCatalogue(rowMap, headerOrder);
+            ff = getRecordFromCatalogue(headerOrder, rowMap);
             digitalDocument = ff.getDigitalDocument();
             logical = digitalDocument.getLogicalDocStruct();
             if (logical.getType().isAnchor()) {
@@ -449,10 +489,18 @@ public class NLIExcelImport {
         return ff;
     }
 
-    private Fileformat getRecordFromCatalogue(Map<Integer, String> rowMap, Map<String, Integer> headerOrder)
+    /**
+     * get a record from catalogue
+     * 
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return Fileformat object created from Catalogue
+     * @throws ImportException
+     */
+    private Fileformat getRecordFromCatalogue(Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
             throws ImportException {
         // get catalogue identifier
-        String identifier = getCatalogueIdentifierFromRowMap(rowMap, headerOrder);
+        String identifier = getCatalogueIdentifierFromRowMap(headerOrder, rowMap);
 
         // find the proper ConfigOpacCatalogue according to the input catalogue
         String catalogue = config.getOpacName();
@@ -474,7 +522,15 @@ public class NLIExcelImport {
         return myRdf;
     }
 
-    private String getCatalogueIdentifierFromRowMap(Map<Integer, String> rowMap, Map<String, Integer> headerOrder) throws ImportException {
+    /**
+     * get the catalogue identifier from the row map
+     * 
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return the catalogue identifier
+     * @throws ImportException
+     */
+    private String getCatalogueIdentifierFromRowMap(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
         if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
             throw new ImportException("Cannot request catalogue, no identifier column defined");
         }
@@ -487,6 +543,13 @@ public class NLIExcelImport {
         return catalogueIdentifier;
     }
 
+    /**
+     * get the config opac catalogue object
+     * 
+     * @param catalogue title of the aimed ConfigOpacCatalogue object
+     * @return the config opac catalogue object if found
+     * @throws ImportException if not found
+     */
     private ConfigOpacCatalogue getProperConfigOpacCatalogue(String catalogue) throws ImportException {
         ConfigOpacCatalogue coc = null;
         for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(workflowTitle)) {
@@ -503,6 +566,14 @@ public class NLIExcelImport {
         return coc;
     }
 
+    /**
+     * 
+     * @param myImportOpac IOpacPlugin
+     * @param coc ConfigOpacCatalogue object
+     * @param identifier
+     * @return Fileformat object
+     * @throws ImportException
+     */
     private Fileformat getFileformatGivenIdentifier(IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, String identifier) throws ImportException {
         Fileformat myRdf = null;
         try {
@@ -518,6 +589,13 @@ public class NLIExcelImport {
         return myRdf;
     }
 
+    /**
+     * 
+     * @param myRdf Fileformat object
+     * @param identifier
+     * @return DocStruct object
+     * @throws ImportException
+     */
     private DocStruct getDocStructFromFileformat(Fileformat myRdf, String identifier) throws ImportException {
         DocStruct ds = null;
         try {
@@ -536,6 +614,12 @@ public class NLIExcelImport {
         return ds;
     }
 
+    /**
+     * update the private field ats
+     * 
+     * @param myImportOpac
+     * @param ds DocStruct object
+     */
     private void updateFieldAts(IOpacPlugin myImportOpac, DocStruct ds) {
         try {
             ats = myImportOpac.getAtstsl();
@@ -550,6 +634,14 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * 
+     * @param io ImportObject, which will be modified
+     * @param logical DocStruct
+     * @param anchor DocStruct
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     */
     private void writeMetadataToDocStruct(ImportObject io, DocStruct logical, DocStruct anchor, Map<String, Integer> headerOrder,
             Map<Integer, String> rowMap) {
         for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
@@ -580,6 +672,14 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * get the list of all existing Metadata objects
+     * 
+     * @param mmo MetadataMappingObject
+     * @param logical DocStruct
+     * @param anchor DocStruct
+     * @return a list of existing Metadata objects
+     */
     private List<Metadata> getExistingMetadata(MetadataMappingObject mmo, DocStruct logical, DocStruct anchor) {
         List<Metadata> existingMetadata =
                 (List<Metadata>) logical.getAllMetadataByType(prefs.getMetadataTypeByName(mmo.getRulesetName()));
@@ -591,6 +691,15 @@ public class NLIExcelImport {
         return existingMetadata;
     }
 
+    /**
+     * create a new Metadata object and add it to one of the input DocStruct objects
+     * 
+     * @param mmo MetadataMappingObject
+     * @param logical DocStruct
+     * @param anchor DocStruct
+     * @param value value of the new Metadata object that should be added
+     * @param identifier
+     */
     private void addNewMetadataToDocStruct(MetadataMappingObject mmo, DocStruct logical, DocStruct anchor, String value, String identifier) {
         try {
             Metadata md = new Metadata(prefs.getMetadataTypeByName(mmo.getRulesetName()));
@@ -613,11 +722,13 @@ public class NLIExcelImport {
     }
 
     /**
+     * copy Images from source folder to the temp folder
      * 
-     * @param io
-     * @param record
+     * @param io ImportObject, which will be modified
      * @param fileName
-     * @param hff
+     * @param hff HotfolderFolder
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
      * @return path to the import folder directly within the goobi import directory (? REALLY ?)
      * @throws IOException If an error occured copying source files
      * @throws ImportException If no image folder was found
@@ -645,6 +756,14 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * 
+     * @param hff HotfolderFolder
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return Path to the image folder
+     * @throws ImportException if no image folder is set in the excel file
+     */
     private Path getImageFolderPath(HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
         String imageFolder = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
         if (StringUtils.isBlank(imageFolder)) {
@@ -654,10 +773,26 @@ public class NLIExcelImport {
         return Paths.get(hff.getProjectFolder().toString(), imageFolder);
     }
 
+    /**
+     * 
+     * @param column
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     * @return the value of the cell
+     */
     private String getCellValue(String column, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) {
         return rowMap.get(headerOrder.get(column));
     }
 
+    /**
+     * replace an existing process with current settings
+     * 
+     * @param io ImportObject, which will be modified
+     * @param ff Fileformat
+     * @param importFolder path to the import folder
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowMap map between the row number as an integer and the row as a string
+     */
     private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Map<String, Integer> headerOrder,
             Map<Integer, String> rowMap) {
 
@@ -681,6 +816,15 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * write information to an existing Goobi process
+     * 
+     * @param ff Fileformat
+     * @param importFolder path to the import folder
+     * @param existingProcess Goobi process
+     * @param fileNamePrefix prefix of file names
+     * @throws ImportException
+     */
     private void writeToExistingProcess(Fileformat ff, Path importFolder, Process existingProcess, String fileNamePrefix)
             throws ImportException {
         try {
@@ -692,6 +836,14 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * copy images into the process folder
+     * 
+     * @param existingProcess Goobi process
+     * @param sourceRootFolder path to the source root folder
+     * @param fileNamePrefix prefix of the file names
+     * @throws ImportException
+     */
     private void copyImagesIntoProcessFolder(Process existingProcess, Path sourceRootFolder, String fileNamePrefix) throws ImportException {
         if (storageProvider.isFileExists(sourceRootFolder)) {
             Path sourceImageFolder = Paths.get(sourceRootFolder.toString(), "images");
@@ -718,6 +870,7 @@ public class NLIExcelImport {
     }
 
     /**
+     * copy images between folders
      * 
      * @param sourceImageFolder The folder containing the data for copy. Both subfolders and files with a .tif, .pdf or .epux suffix are being copied
      * @param copyToDirectory The directory into which the files/subdirectories are to be copied
@@ -757,6 +910,12 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * copy ocr files
+     * 
+     * @param currentData path to the current file
+     * @param existingProcess Goobi process
+     */
     private void copyOcrFile(Path currentData, Process existingProcess) {
         try {
             // TODO: What is a proper candidate in StorageProviderInterface to replace Files::isRegularFile?
@@ -772,6 +931,13 @@ public class NLIExcelImport {
         }
     }
 
+    /**
+     * copy file
+     * 
+     * @param file path to the file
+     * @param destination path to the destination
+     * @throws IOException
+     */
     private void copyFile(Path file, Path destination) throws IOException {
 
         if (moveFiles) {
@@ -786,6 +952,13 @@ public class NLIExcelImport {
 
     }
 
+    /**
+     * name a Goobi process
+     * 
+     * @param processTitle title of the process
+     * @param io ImportObject, which will be modified
+     * @return path to the Mets file as a string
+     */
     private String nameProcess(String processTitle, ImportObject io) {
         // set new process title
         String fileName = importFolder + File.separator + processTitle + ".xml";
@@ -794,6 +967,15 @@ public class NLIExcelImport {
         return fileName;
     }
 
+    /**
+     * 
+     * @param recordList a list of Record objects
+     * @param idColumn
+     * @param headerOrder map between the header as a string and its order as an integer
+     * @param rowIterator
+     * @param rowCounter
+     * @return rowCounter
+     */
     private int addRowProcess(List<Record> recordList, String idColumn, Map<String, Integer> headerOrder, Iterator<Row> rowIterator, int rowCounter) {
 
         Map<Integer, String> map = new HashMap<>();
@@ -844,6 +1026,11 @@ public class NLIExcelImport {
         return rowCounter;
     }
 
+    /**
+     * prepare the import folder
+     * 
+     * @param folderPathString path to the import folder as a string
+     */
     private void prepareImportFolder(String folderPathString) {
         log.debug("perparing import folder: " + folderPathString);
         Path folderPath = Path.of(folderPathString);
@@ -886,6 +1073,11 @@ public class NLIExcelImport {
         return new NLIExcelConfig(myconfig);
     }
 
+    /**
+     * 
+     * @param workflowTitle
+     * @return
+     */
     public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 
