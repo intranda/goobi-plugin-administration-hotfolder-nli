@@ -43,7 +43,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
     private Path hotfolderPath;
 
-    private int number = 0;
+    private int logNumber = 0;
 
     private boolean numberUpdated = false;
 
@@ -138,12 +138,8 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         }
 
         updateListOfResults(lastRunInfoPath);
-        log.debug("listOfResults.size() = " + listOfResults.size());
-        // assure that the number is not out of range
-        number = Math.max(number, 0);
-        number = Math.min(number, listOfResults.size() - 1);
 
-        List<GUIImportResult> results = listOfResults.get(number);
+        List<GUIImportResult> results = listOfResults.get(logNumber);
 
         // clearing up old entries and reload from the json file
         lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
@@ -186,22 +182,38 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         showFolders.put(folder, !showFolders.get(folder));
     }
 
-    public int getNumber() {
-        return number;
-    }
-
-    public void setNumber(int number) {
-        this.number = number;
-    }
-
-    public void nextNumber() {
-        number += 1;
+    public void nextLog() {
+        logNumber = Math.min(logNumber + 1, Math.max(listOfResults.size() - 1, 0));
         numberUpdated = true;
     }
 
-    public void previousNumber() {
-        number -= 1;
+    public void previousLog() {
+        logNumber = Math.max(logNumber - 1, 0);
         numberUpdated = true;
+    }
+
+    public String getOrderOfRunInfo() {
+        if (logNumber == 0) {
+            return "The Last Run";
+        }
+
+        String ordinalSuffix = appendOrdinalSuffix(logNumber);
+        return "The " + ordinalSuffix + " Run Before The Last";
+    }
+
+    private String appendOrdinalSuffix(int i) {
+        String str = String.valueOf(i);
+        if (str.endsWith("1")) {
+            str += "st";
+        } else if (str.endsWith("2")) {
+            str += "nd";
+        } else if (str.endsWith("3")) {
+            str += "rd";
+        } else {
+            str += "th";
+        }
+
+        return str;
     }
 
 }
