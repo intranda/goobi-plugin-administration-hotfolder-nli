@@ -21,8 +21,6 @@ import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.flow.jobs.AbstractGoobiJob;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -55,7 +53,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
      * Quartz-Job implementation
      */
     @Override
-    public void execute(JobExecutionContext jec) throws JobExecutionException {
+    public void execute() {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
         // assure that allowedNumberOfLogs is at least 1
@@ -130,13 +128,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     /**
-     * returns true for the following cases: 
-     * 1). 0 < startTime <= currentHour < endTime
-     * 2). 0 < endTime <= startTime <= currentHour
-     * 3). 0 < currentHour < endTime <= startTime
-     * 4). endTime <= 0 < startTime <= currentHour
-     * 5). startTime <= 0 < currentHour < endTime
-     * 6). startTime <= 0 && endTime <= 0
+     * returns true for the following cases: 1). 0 < startTime <= currentHour < endTime 2). 0 < endTime <= startTime <= currentHour 3). 0 <
+     * currentHour < endTime <= startTime 4). endTime <= 0 < startTime <= currentHour 5). startTime <= 0 < currentHour < endTime 6). startTime <= 0 &&
+     * endTime <= 0
      * 
      * @param currentHour
      * @param startTime
@@ -349,14 +343,14 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         int numberOfLogs = 0;
         boolean startingNewLog = false;
         for (String s : lastResults.split("")) {
-            if (s.equals("[")) {
+            if ("[".equals(s)) {
                 numberOfLogs += 1;
                 startingNewLog = true;
             }
 
             sb.append(s);
 
-            if (startingNewLog && s.equals("]")) {
+            if (startingNewLog && "]".equals(s)) {
                 startingNewLog = false;
                 if (numberOfLogs == allowedNumberOfLogs - 1) {
                     // time to cut out the tail
