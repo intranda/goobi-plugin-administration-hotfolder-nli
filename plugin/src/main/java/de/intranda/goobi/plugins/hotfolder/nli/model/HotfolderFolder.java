@@ -77,4 +77,19 @@ public class HotfolderFolder {
         //otherwise
         return null;
     }
+
+    public String getFolderOwner() {
+        for (File file : projectFolder.toFile().listFiles()) {
+            String fileName = file.getName();
+            if (fileName.endsWith(".owner")) {
+                return fileName.substring(0, fileName.lastIndexOf("."));
+            }
+        }
+        return "";
+    }
+
+    public void deleteOwnerFile() {
+        // delete the .owner file 
+        log.debug("deleting .owner file");
+    }
 }

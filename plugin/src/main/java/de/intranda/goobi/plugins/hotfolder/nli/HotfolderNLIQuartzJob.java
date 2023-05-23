@@ -128,9 +128,13 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     /**
-     * returns true for the following cases: 1). 0 < startTime <= currentHour < endTime 2). 0 < endTime <= startTime <= currentHour 3). 0 <
-     * currentHour < endTime <= startTime 4). endTime <= 0 < startTime <= currentHour 5). startTime <= 0 < currentHour < endTime 6). startTime <= 0 &&
-     * endTime <= 0
+     * returns true for the following cases: 
+     * 1). 0 < startTime <= currentHour < endTime 
+     * 2). 0 < endTime <= startTime <= currentHour 
+     * 3). 0 < currentHour < endTime <= startTime 
+     * 4). endTime <= 0 < startTime <= currentHour 
+     * 5). startTime <= 0 < currentHour < endTime 
+     * 6). startTime <= 0 && endTime <= 0
      * 
      * @param currentHour
      * @param startTime
@@ -228,6 +232,10 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 //otherwise:
                 log.info("NLI hotfolder - importing: " + importFile);
 
+                // get owner info of the folder
+                String ownerName = hff.getFolderOwner();
+                log.info("owner: " + ownerName);
+
                 // prepare the NLIExcelImport object
                 if (excelImport == null) {
                     excelImport = new NLIExcelImport(hff);
@@ -243,6 +251,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
                 // add all ImportObjects regarding the current HotfolderFolder to the list
                 addImportObjectsRegardingHotfolderFolder(imports, records, importFile, hff);
+
+                // delete the .owner file
+                hff.deleteOwnerFile();
 
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
