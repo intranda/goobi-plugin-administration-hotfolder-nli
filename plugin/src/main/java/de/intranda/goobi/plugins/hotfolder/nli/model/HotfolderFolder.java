@@ -8,7 +8,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
@@ -78,18 +82,43 @@ public class HotfolderFolder {
         return null;
     }
 
-    public String getFolderOwner() {
-        for (File file : projectFolder.toFile().listFiles()) {
-            String fileName = file.getName();
-            if (fileName.endsWith(".owner")) {
-                return fileName.substring(0, fileName.lastIndexOf("."));
+    public Map<Path, String> getFolderOwnerMap() {
+        Map<Path, String> folderOwnerMap = new HashMap<>();
+        for (Path folderPath : lstProcessFolders) {
+            String ownerName = getOwnerName(folderPath);
+            if (StringUtils.isNotBlank(ownerName)) {
+                folderOwnerMap.put(folderPath, ownerName);
+                deleteOwnerFile(folderPath);
+                continue;
             }
         }
+
+        return folderOwnerMap;
+    }
+
+    private String getOwnerName(Path folderPath) {
+        for (File file : folderPath.toFile().listFiles()) {
+            String fileName = file.getName();
+            if (fileName.endsWith(".owner")) {
+                return fileName.substring(0, fileName.lastIndexOf(".")).trim();
+            }
+        }
+
         return "";
     }
 
-    public void deleteOwnerFile() {
+    public void deleteOwnerFile(Path folderPath) {
         // delete the .owner file 
         log.debug("deleting .owner file");
+        for (File file : folderPath.toFile().listFiles()) {
+            String fileName = file.getName();
+            if (fileName.endsWith(".owner")) {
+                if (!file.delete()) {
+                    log.error("failed to delete the .owner file in " + folderPath);
+                }
+                // there should be at most only one such file 
+                return;
+            }
+        }
     }
 }

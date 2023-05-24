@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
@@ -170,7 +171,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Integer startTime = templateConfig.getInt("schedule/start", 0);
             Integer endTime = templateConfig.getInt("schedule/end", 0);
             int currentHour = LocalDateTime.now().getHour();
-            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+            //            boolean run = shouldRunAtTime(currentHour, startTime, endTime)
+            boolean run = true;
             if (!run) {
                 ignoredTemplates.add(folder.getTemplateName());
             }
@@ -221,6 +223,14 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
         List<ImportObject> imports = new ArrayList<>();
         for (HotfolderFolder hff : importFolders) {
+            // get owner info of the folder
+            Map<Path, String> folderOwnerMap = hff.getFolderOwnerMap();
+            for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+                Path folderPath = entry.getKey();
+                String ownerName = entry.getValue();
+                log.debug(folderPath + " : " + ownerName);
+            }
+
             try {
                 File importFile = hff.getImportFile();
                 if (importFile == null) {
@@ -231,10 +241,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
                 //otherwise:
                 log.info("NLI hotfolder - importing: " + importFile);
-
-                // get owner info of the folder
-                String ownerName = hff.getFolderOwner();
-                log.info("owner: " + ownerName);
 
                 // prepare the NLIExcelImport object
                 if (excelImport == null) {
@@ -251,9 +257,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
                 // add all ImportObjects regarding the current HotfolderFolder to the list
                 addImportObjectsRegardingHotfolderFolder(imports, records, importFile, hff);
-
-                // delete the .owner file
-                hff.deleteOwnerFile();
 
             } catch (IOException e) {
                 log.info("NLI hotfolder - error: " + e.getMessage());
