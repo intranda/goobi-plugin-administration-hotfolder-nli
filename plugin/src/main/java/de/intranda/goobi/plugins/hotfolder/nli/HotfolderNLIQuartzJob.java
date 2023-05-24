@@ -272,12 +272,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private void updateFolderOwnerMaps(HotfolderFolder hff) {
         // get owner info of the folder
         Map<Path, String> folderOwnerMap = hff.getFolderOwnerMap();
-        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
-            Path folderPath = entry.getKey();
-            String ownerName = entry.getValue();
-            log.debug(folderPath + " : " + ownerName);
-        }
-
+        // store the info
         folderOwnerMaps.put(hff, folderOwnerMap);
     }
 
@@ -325,20 +320,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             if (processNew != null && processNewId != null) {
                 log.info("NLI hotfolder - created process: " + processNewId);
 
-                for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
-                    Path folderPath = entry.getKey();
-                    Path folderName = folderPath.getFileName();
-                    log.debug("folderName = " + folderName);
-                    String processTitle = processNew.getTitel();
-                    log.debug("processTitle = " + processTitle);
-                    if (processTitle.endsWith(folderName.toString())) {
-                        log.debug("found");
-                        String ownerName = entry.getValue();
-                        log.debug("ownerName = " + ownerName);
-                        String message = "Owner name: " + ownerName;
-                        Helper.addMessageToProcessJournal(processNewId, LogType.INFO, message);
-                    }
-                }
+                // log owner name into process journal
+                logOwnerNameIntoProcessJournal(processNew, folderOwnerMap);
 
                 //close first step
                 HelperSchritte hs = new HelperSchritte();
@@ -364,6 +347,19 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         return io;
+    }
+
+    private void logOwnerNameIntoProcessJournal(org.goobi.beans.Process process, Map<Path, String> folderOwnerMap) {
+        String processTitle = process.getTitel();
+        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+            String folderName = entry.getKey().getFileName().toString();
+            if (processTitle.endsWith(folderName)) {
+                String ownerName = entry.getValue();
+                log.debug("ownerName = " + ownerName);
+                String message = "Owner name: " + ownerName;
+                Helper.addMessageToProcessJournal(process.getId(), LogType.INFO, message);
+            }
+        }
     }
 
     private String getReducedPreviousRunInfos(Path resultsJsonPath, int allowedNumberOfLogs) throws IOException {
