@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,6 +19,7 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.goobi.beans.Step;
 import org.goobi.production.enums.ImportReturnValue;
+import org.goobi.production.enums.LogType;
 import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.flow.jobs.AbstractGoobiJob;
 import org.goobi.production.importer.ImportObject;
@@ -29,6 +31,7 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.HelperSchritte;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
@@ -44,6 +47,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
+
+    private Map<HotfolderFolder, Map<Path, String>> folderOwnerMaps = new HashMap<>();
 
     @Override
     public String getJobName() {
@@ -223,13 +228,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
         List<ImportObject> imports = new ArrayList<>();
         for (HotfolderFolder hff : importFolders) {
-            // get owner info of the folder
-            Map<Path, String> folderOwnerMap = hff.getFolderOwnerMap();
-            for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
-                Path folderPath = entry.getKey();
-                String ownerName = entry.getValue();
-                log.debug(folderPath + " : " + ownerName);
-            }
+            // get owner info and write it into log
+            updateFolderOwnerMaps(hff);
 
             try {
                 File importFile = hff.getImportFile();
@@ -269,6 +269,18 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         return imports;
     }
 
+    private void updateFolderOwnerMaps(HotfolderFolder hff) {
+        // get owner info of the folder
+        Map<Path, String> folderOwnerMap = hff.getFolderOwnerMap();
+        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+            Path folderPath = entry.getKey();
+            String ownerName = entry.getValue();
+            log.debug(folderPath + " : " + ownerName);
+        }
+
+        folderOwnerMaps.put(hff, folderOwnerMap);
+    }
+
     private List<Record> getAllRecords(List<ImportObject> imports, File importFile) {
         List<Record> records;
         try {
@@ -303,12 +315,30 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             return null;
         }
 
+        Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
+
         if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
             //create new process
             org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
             org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
-            if (processNew != null && processNew.getId() != null) {
-                log.info("NLI hotfolder - created process: " + processNew.getId());
+            Integer processNewId = processNew.getId();
+            if (processNew != null && processNewId != null) {
+                log.info("NLI hotfolder - created process: " + processNewId);
+
+                for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+                    Path folderPath = entry.getKey();
+                    Path folderName = folderPath.getFileName();
+                    log.debug("folderName = " + folderName);
+                    String processTitle = processNew.getTitel();
+                    log.debug("processTitle = " + processTitle);
+                    if (processTitle.endsWith(folderName.toString())) {
+                        log.debug("found");
+                        String ownerName = entry.getValue();
+                        log.debug("ownerName = " + ownerName);
+                        String message = "Owner name: " + ownerName;
+                        Helper.addMessageToProcessJournal(processNewId, LogType.INFO, message);
+                    }
+                }
 
                 //close first step
                 HelperSchritte hs = new HelperSchritte();
@@ -319,7 +349,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 if (excelImport.shouldDeleteSourceFiles()) {
                     excelImport.deleteSourceFiles(hff, record);
                 }
-            } else { // processNew == null || processNew.getId() == null
+            } else { // processNew == null || processNewId == null
                 io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
                 io.setImportReturnValue(ImportReturnValue.NoData);
             }
