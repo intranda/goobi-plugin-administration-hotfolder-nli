@@ -48,6 +48,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
 
+    // map that hold maps between folder paths and owner names
     private Map<HotfolderFolder, Map<Path, String>> folderOwnerMaps = new HashMap<>();
 
     @Override
@@ -176,8 +177,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Integer startTime = templateConfig.getInt("schedule/start", 0);
             Integer endTime = templateConfig.getInt("schedule/end", 0);
             int currentHour = LocalDateTime.now().getHour();
-            //            boolean run = shouldRunAtTime(currentHour, startTime, endTime)
-            boolean run = true;
+            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+//            boolean run = true;
             if (!run) {
                 ignoredTemplates.add(folder.getTemplateName());
             }
@@ -310,8 +311,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             return null;
         }
 
-        Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
-
         if (io.getImportReturnValue() == ImportReturnValue.ExportFinished) {
             //create new process
             org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
@@ -321,7 +320,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.info("NLI hotfolder - created process: " + processNewId);
 
                 // log owner name into process journal
-                logOwnerNameIntoProcessJournal(processNew, folderOwnerMap);
+                logOwnerNameIntoProcessJournal(hff, processNew);
 
                 //close first step
                 HelperSchritte hs = new HelperSchritte();
@@ -349,7 +348,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         return io;
     }
 
-    private void logOwnerNameIntoProcessJournal(org.goobi.beans.Process process, Map<Path, String> folderOwnerMap) {
+    private void logOwnerNameIntoProcessJournal(HotfolderFolder hff, org.goobi.beans.Process process) {
+        Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
         String processTitle = process.getTitel();
         for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
             String folderName = entry.getKey().getFileName().toString();

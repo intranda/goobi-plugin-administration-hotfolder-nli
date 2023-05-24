@@ -1,9 +1,9 @@
 <config_plugin>
     <!-- hotfolder -->
     <hotfolderPath>/opt/digiverso/import/hotfolder</hotfolderPath>
-    <schedule>
-    	<cronExpression>0 /5 * * * ?</cronExpression>
-    </schedule>
+
+    <!-- maximum number of runs whose run info should be saved into the log, DEFAULT 1 -->
+    <allowedNumberOfLogs>3</allowedNumberOfLogs>
    
     <config>
         <!-- Use this config for the following workflow template: -->
