@@ -2,8 +2,6 @@ package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -14,11 +12,14 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import de.sub.goobi.helper.StorageProvider;
+import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 public class HotfolderFolder {
+    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
     @Getter
     private Path projectFolder;
@@ -28,36 +29,34 @@ public class HotfolderFolder {
 
     private Integer minutesInactivity = 30;
 
+    private List<Path> projectFoldersFileList;
+
     private List<Path> lstProcessFolders;
 
     public HotfolderFolder(Path projectFolder, String templateName) throws IOException {
-
         this.projectFolder = projectFolder;
         this.templateName = templateName;
+        this.projectFoldersFileList = storageProvider.listFiles(this.projectFolder.toString());
 
         getImportFolders();
     }
 
     private void getImportFolders() throws IOException {
-
         lstProcessFolders = new ArrayList<>();
-
-        try (DirectoryStream<Path> barcodeDirStream = Files.newDirectoryStream(projectFolder)) {
-            for (Path barcodePath : barcodeDirStream) {
-                if (Files.isDirectory(barcodePath)) {
-                    lstProcessFolders.add(barcodePath);
-                }
+        
+        for (Path barcodePath : projectFoldersFileList) {
+            if (storageProvider.isDirectory(barcodePath)) {
+                lstProcessFolders.add(barcodePath);
             }
         }
     }
 
     public List<Path> getCurrentProcessFolders() throws IOException {
-
         List<Path> lstFoldersToImport = new ArrayList<>();
 
         for (Path barcodePath : lstProcessFolders) {
             log.trace("looking at {}", barcodePath);
-            Instant lastModified = Files.getLastModifiedTime(barcodePath).toInstant();
+            Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(barcodePath));
             Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesInactivity));
             if (lastModified.isBefore(thirtyMinutesAgo)) {
                 log.trace("Adding process folder {} to list", barcodePath);
@@ -71,10 +70,10 @@ public class HotfolderFolder {
     }
 
     public File getImportFile() throws IOException {
-
-        for (File file : projectFolder.toFile().listFiles()) {
-            if (file.getName().endsWith(".xlsx") && !file.getName().startsWith("~")) {
-                return file;
+        for (Path filePath : projectFoldersFileList) {
+            String fileName = filePath.getFileName().toString();
+            if (fileName.endsWith(".xlsx") && !fileName.startsWith("~")) {
+                return filePath.toFile();
             }
         }
 
@@ -97,28 +96,38 @@ public class HotfolderFolder {
     }
 
     private String getOwnerName(Path folderPath) {
-        for (File file : folderPath.toFile().listFiles()) {
-            String fileName = file.getName();
-            if (fileName.endsWith(".owner")) {
-                return fileName.substring(0, fileName.lastIndexOf(".")).trim();
-            }
+        Path ownerFilePath = getOwnerFilePath(folderPath);
+        if (ownerFilePath != null) {
+            String fileName = ownerFilePath.getFileName().toString();
+            return fileName.substring(0, fileName.lastIndexOf(".")).trim();
         }
 
         return "";
     }
 
-    public void deleteOwnerFile(Path folderPath) {
-        // delete the .owner file 
-        log.debug("deleting .owner file");
-        for (File file : folderPath.toFile().listFiles()) {
-            String fileName = file.getName();
+    private Path getOwnerFilePath(Path folderPath) {
+        for (Path filePath : storageProvider.listFiles(folderPath.toString())) {
+            String fileName = filePath.getFileName().toString();
             if (fileName.endsWith(".owner")) {
-                if (!file.delete()) {
-                    log.error("failed to delete the .owner file in " + folderPath);
-                }
                 // there should be at most only one such file 
-                return;
+                return filePath;
+            }
+        }
+
+        return null;
+    }
+
+    public void deleteOwnerFile(Path folderPath) {
+        log.debug("deleting .owner file in " + folderPath);
+
+        Path ownerFilePath = getOwnerFilePath(folderPath);
+        if (ownerFilePath != null) {
+            try {
+                storageProvider.deleteFile(ownerFilePath);
+            } catch (IOException e) {
+                log.error("failed to delete the .owner file in " + folderPath);
             }
         }
     }
+
 }
