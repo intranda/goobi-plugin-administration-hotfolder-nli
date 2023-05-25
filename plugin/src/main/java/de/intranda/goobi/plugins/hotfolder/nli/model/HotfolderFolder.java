@@ -26,13 +26,20 @@ public class HotfolderFolder {
 
     @Getter
     private String templateName;
-
+    // time of minutes that a folder should remain unmodified before the import of it starts
     private Integer minutesInactivity = 30;
-
+    // list of paths of all files including folders inside the project folder
     private List<Path> projectFoldersFileList;
-
+    // list of paths of all folders whose contents are to be imported
     private List<Path> lstProcessFolders;
 
+    /**
+     * constructor
+     * 
+     * @param projectFolder
+     * @param templateName
+     * @throws IOException
+     */
     public HotfolderFolder(Path projectFolder, String templateName) throws IOException {
         this.projectFolder = projectFolder;
         this.templateName = templateName;
@@ -41,6 +48,11 @@ public class HotfolderFolder {
         getImportFolders();
     }
 
+    /**
+     * initialize the field lstProcessFolders
+     * 
+     * @throws IOException
+     */
     private void getImportFolders() throws IOException {
         lstProcessFolders = new ArrayList<>();
         
@@ -51,6 +63,12 @@ public class HotfolderFolder {
         }
     }
 
+    /**
+     * get a list of paths to the folders that are ready for the import
+     * 
+     * @return a list of folders' paths that is ready for the import
+     * @throws IOException
+     */
     public List<Path> getCurrentProcessFolders() throws IOException {
         List<Path> lstFoldersToImport = new ArrayList<>();
 
@@ -69,6 +87,12 @@ public class HotfolderFolder {
         return lstFoldersToImport;
     }
 
+    /**
+     * get the .xlsx file that is used to control the import
+     * 
+     * @return a File object
+     * @throws IOException
+     */
     public File getImportFile() throws IOException {
         for (Path filePath : projectFoldersFileList) {
             String fileName = filePath.getFileName().toString();
@@ -77,10 +101,15 @@ public class HotfolderFolder {
             }
         }
 
-        //otherwise
+        // no such file found
         return null;
     }
 
+    /**
+     * get the map from folders' paths to the names of their owners
+     * 
+     * @return the map from folders' paths to their owners' names
+     */
     public Map<Path, String> getFolderOwnerMap() {
         Map<Path, String> folderOwnerMap = new HashMap<>();
         for (Path folderPath : lstProcessFolders) {
@@ -95,6 +124,12 @@ public class HotfolderFolder {
         return folderOwnerMap;
     }
 
+    /**
+     * get the owner's name of the folder
+     * 
+     * @param folderPath path of the folder whose owner is to be found
+     * @return name of the .owner file without the extension
+     */
     private String getOwnerName(Path folderPath) {
         Path ownerFilePath = getOwnerFilePath(folderPath);
         if (ownerFilePath != null) {
@@ -105,6 +140,12 @@ public class HotfolderFolder {
         return "";
     }
 
+    /**
+     * retrieve the path of the .owner file in the given folder
+     * 
+     * @param folderPath path of the folder from which the .owner file should be located
+     * @return absolute path of the .owner file
+     */
     private Path getOwnerFilePath(Path folderPath) {
         for (Path filePath : storageProvider.listFiles(folderPath.toString())) {
             String fileName = filePath.getFileName().toString();
@@ -117,6 +158,11 @@ public class HotfolderFolder {
         return null;
     }
 
+    /**
+     * delete the .owner file from the given folder path
+     * 
+     * @param folderPath path of the folder from which the .owner file should be removed
+     */
     public void deleteOwnerFile(Path folderPath) {
         log.debug("deleting .owner file in " + folderPath);
 
