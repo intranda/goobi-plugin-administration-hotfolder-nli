@@ -131,6 +131,12 @@
                                     <intranda:boxTitle title="#{msgs.plugin_administration_nli_hotfolder_logs}">
     
                                         <div class="actions d-flex">
+                                        
+                                            <h:outputText 
+                                                styleClass="me-3 mt-2"
+                                                rendered="#{AdministrationForm.administrationPlugin.listOfResults.size() ne 0}"
+                                                value="#{AdministrationForm.administrationPlugin.logNumber + 1} / #{AdministrationForm.administrationPlugin.listOfResults.size()}"/>
+                                            
                                             <!-- BUTTON TO PREVIOUS LOG -->
                                             <button
                                                 jsf:id="previousLogButton"
@@ -139,9 +145,6 @@
                                                 jsf:action="#{AdministrationForm.administrationPlugin.previousLog}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_previousEntry}">
                                                 <i class="fa fa-angle-left"></i>
-                                                <f:ajax
-                                                    execute="@form"
-                                                    render="runInfoBox" />
                                             </button>
                                             <!-- BUTTON TO NEXT LOG -->
                                             <button
@@ -151,9 +154,6 @@
                                                 jsf:action="#{AdministrationForm.administrationPlugin.nextLog}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_nextEntry}">
                                                 <i class="fa fa-angle-right"></i>
-                                                <f:ajax
-                                                    execute="@form"
-                                                    render="runInfoBox" />
                                             </button>
     
                                         </div>
@@ -167,32 +167,31 @@
                                             value="#{msgs.plugin_administration_nli_hotfolder_noLogEntriesAvailable}"/>
                                                             
                                         <ui:fragment rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() gt 0}">
-                                            <h:outputText value="#{AdministrationForm.administrationPlugin.orderOfRunInfo}" />
-                                            
-                                            <br/>
-                                            
+                                           
                                             <ui:repeat
                                                 var="folder"
                                                 value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
                                                 
                                                 <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
                                                 <div>
-                                                    <h4 style="display: inline;">#{folder}</h4>
                                                     <button
-                                                        class="btn btn-blank float-end"
+                                                        class="btn ps-0 mb-2"
                                                         jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
+                                                        <i class="btn btn-blank fa #{AdministrationForm.administrationPlugin.showFolders[folder] ? 'fa-angle-down' : 'fa-angle-right'}"></i>
+                                                        <span>
                                                         <h:outputText
                                                             value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
-                                                        <f:ajax render="runInfoBox" />
+                                                        <h:outputText value="#{folder}"/>
+                                                        </span>
+                                                        
                                                     </button>
+                                                    <br/>
                                                 </div>
                                                 <!-- // Template name / Hotfolder name and button -->
                                                 
-                                                <hr />
-                                                
                                                 <!-- Table of error logs from the last run -->
                                                 <table
-                                                    class="table table-bordered table-hover"
+                                                    class="gw-table table table-bordered table-hover border-end border-start"
                                                     jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
                                                     <thead>
                                                         <tr>

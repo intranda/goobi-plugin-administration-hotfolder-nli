@@ -43,6 +43,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
     private Path hotfolderPath;
 
+    @Getter
     private int logNumber = 0;
 
     private boolean numberUpdated = false;
@@ -53,6 +54,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     // information about the last run
     private Map<String, List<GUIImportResult>> lastRunInfo;
 
+    @Getter
     private List<List<GUIImportResult>> listOfResults = new ArrayList<>();
 
     // controls whether or not to show folders
