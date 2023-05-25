@@ -177,8 +177,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Integer startTime = templateConfig.getInt("schedule/start", 0);
             Integer endTime = templateConfig.getInt("schedule/end", 0);
             int currentHour = LocalDateTime.now().getHour();
-            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-//            boolean run = true;
+            //            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+            boolean run = true;
             if (!run) {
                 ignoredTemplates.add(folder.getTemplateName());
             }
@@ -315,9 +315,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             //create new process
             org.goobi.beans.Process template = ProcessManager.getProcessByExactTitle(hff.getTemplateName());
             org.goobi.beans.Process processNew = JobCreation.generateProcess(io, template);
-            Integer processNewId = processNew.getId();
-            if (processNew != null && processNewId != null) {
-                log.info("NLI hotfolder - created process: " + processNewId);
+            if (processNew != null && processNew.getId() != null) {
+                log.info("NLI hotfolder - created process: " + processNew.getId());
 
                 // log owner name into process journal
                 logOwnerNameIntoProcessJournal(hff, processNew);
