@@ -178,8 +178,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Integer startTime = templateConfig.getInt("schedule/start", 0);
             Integer endTime = templateConfig.getInt("schedule/end", 0);
             int currentHour = LocalDateTime.now().getHour();
-            //            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-            boolean run = true; // use this line instead if a quick test via "regular tasks" is needed // NOSONAR
+            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
+            //            boolean run = true; // use this line instead if a quick test via "regular tasks" is needed // NOSONAR
             if (!run) {
                 ignoredTemplates.add(folder.getTemplateName());
             }
