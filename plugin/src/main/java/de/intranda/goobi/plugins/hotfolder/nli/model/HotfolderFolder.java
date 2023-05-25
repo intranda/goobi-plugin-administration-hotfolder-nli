@@ -38,9 +38,8 @@ public class HotfolderFolder {
      * 
      * @param projectFolder
      * @param templateName
-     * @throws IOException
      */
-    public HotfolderFolder(Path projectFolder, String templateName) throws IOException {
+    public HotfolderFolder(Path projectFolder, String templateName) {
         this.projectFolder = projectFolder;
         this.templateName = templateName;
         this.projectFoldersFileList = storageProvider.listFiles(this.projectFolder.toString());
@@ -50,10 +49,8 @@ public class HotfolderFolder {
 
     /**
      * initialize the field lstProcessFolders
-     * 
-     * @throws IOException
      */
-    private void getImportFolders() throws IOException {
+    private void getImportFolders() {
         lstProcessFolders = new ArrayList<>();
         
         for (Path barcodePath : projectFoldersFileList) {
@@ -91,9 +88,8 @@ public class HotfolderFolder {
      * get the .xlsx file that is used to control the import
      * 
      * @return a File object
-     * @throws IOException
      */
-    public File getImportFile() throws IOException {
+    public File getImportFile() {
         for (Path filePath : projectFoldersFileList) {
             String fileName = filePath.getFileName().toString();
             if (fileName.endsWith(".xlsx") && !fileName.startsWith("~")) {
@@ -117,7 +113,6 @@ public class HotfolderFolder {
             if (StringUtils.isNotBlank(ownerName)) {
                 folderOwnerMap.put(folderPath, ownerName);
                 deleteOwnerFile(folderPath);
-                continue;
             }
         }
 
