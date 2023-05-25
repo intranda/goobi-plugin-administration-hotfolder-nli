@@ -2,6 +2,7 @@ package de.intranda.goobi.plugins.hotfolder.nli;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -178,7 +179,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Integer endTime = templateConfig.getInt("schedule/end", 0);
             int currentHour = LocalDateTime.now().getHour();
             //            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-            boolean run = true;
+            boolean run = true; // use this line instead if a quick test via "regular tasks" is needed // NOSONAR
             if (!run) {
                 ignoredTemplates.add(folder.getTemplateName());
             }
@@ -372,9 +373,13 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
-        String lastResults = new String(storageProvider.newInputStream(resultsJsonPath).readAllBytes());
+        String lastResults = "";
+        try (InputStream inputStream = storageProvider.newInputStream(resultsJsonPath)) {
+            lastResults = new String(inputStream.readAllBytes());
+        }
+
         lastResults = ",\n" + lastResults.substring(1);
-        log.debug("lastResult = " + lastResults);
+        log.debug("lastResults = " + lastResults);
 
         // use StringBuilder and count the number of [
         StringBuilder sb = new StringBuilder();
