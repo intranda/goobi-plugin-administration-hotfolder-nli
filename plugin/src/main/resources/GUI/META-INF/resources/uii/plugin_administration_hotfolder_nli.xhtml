@@ -1,159 +1,232 @@
-<ui:composition xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-	xmlns:composite="http://xmlns.jcp.org/jsf/composite"
-	xmlns:h="http://xmlns.jcp.org/jsf/html"
-	xmlns:f="http://xmlns.jcp.org/jsf/core"
+<ui:composition
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+    xmlns:composite="http://xmlns.jcp.org/jsf/composite"
+    xmlns:h="http://xmlns.jcp.org/jsf/html"
+    xmlns:f="http://xmlns.jcp.org/jsf/core"
     xmlns:jsf="http://xmlns.jcp.org/jsf"
-	xmlns:x="http://myfaces.apache.org/tomahawk"
-	xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
-	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
-	xmlns:p="http://primefaces.org/ui">
+    xmlns:x="http://myfaces.apache.org/tomahawk"
+    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/compositesPG"
+    xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+    xmlns:p="http://primefaces.org/ui">
 
-	<composite:interface>
-	</composite:interface>
+    <composite:interface>
+    </composite:interface>
 
-	<composite:implementation>
+    <composite:implementation>
 
-		<h:panelGroup>
-			<div class="row">
-				<div class="col-sm-12">
-					<div class="box box-color box-bordered lightgrey">
-						<div class="box-title">
-							<h3>
-								<i class="fa fa-plug"></i>
-								<h:outputText
-									value="#{msgs[AdministrationForm.administrationPlugin.title]}" />
-							</h3>
-						</div>
-						<div class="box-content">
+                <!-- NOT ALLOWED -->
+                <ui:fragment rendered="#{!LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
+                    <h:outputText
+                        styleClass="alert alert-danger d-block"
+                        value="#{msgs.plugin_administration_missingPermission} Plugin_administration_hotfolder_nli"/>
+                </ui:fragment>
+                <!-- // NOT ALLOWED -->
 
-							<h:panelGroup
-								rendered="#{!LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
-								<h:outputText
-									styleClass="alert alert-danger alert-dismissable margin-bottom-10 margin-top-10"
-									value="#{msgs.plugin_administration_missingPermission} Plugin_administration_hotfolder_nli"></h:outputText>
-							</h:panelGroup>
 
-							<h:panelGroup id="actionform" styleClass="col-sm-12"
-								rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
-								<div class="row">
-									<h:form>
-                                        <ui:fragment rendered="#{AdministrationForm.administrationPlugin.paused}">
-                                            <div class="alert alert-warning clearfix">
-                                             <i class="fa fa-pause fa-5x pull-left"></i>
-                                                <h4>
-                                                  #{msgs.plugin_NliHotfolder_hotfolderpaused}
-                                                </h4>
-                                            </div>
-                                            <button class="btn" jsf:action="#{AdministrationForm.administrationPlugin.resumeWork}">
-                                                #{msgs.plugin_NliHotfolder_resumework}
+                <!-- ALLOWED -->
+                <ui:fragment rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
+                    <h:form>
+                        <div class="row">
+
+                            <!-- BOX ON THE LEFT WITH STATUS -->
+                            <div class="col-2">
+                                <intranda:box
+                                    boxType="action"
+                                    boxTitle="false"
+                                    boxForm="false">
+        
+                                    <intranda:boxTitle
+                                        title="#{msgs[AdministrationForm.administrationPlugin.title]}"
+                                        icon="fa-plug">
+        
+                                        <div class="actions d-flex">
+                                            <button
+                                                jsf:rendered="#{AdministrationForm.administrationPlugin.paused}"
+                                                jsf:id="buttonLeft1"
+                                                class="btn d-flex align-items-center btn--title-action"
+                                                jsf:rel="tooltip"
+                                                jsf:action="#{AdministrationForm.administrationPlugin.resumeWork}"
+                                                title="#{msgs.plugin_administration_nli_hotfolder_resumework}">
+                                                <i class="fa fa-pause"></i>
                                             </button>
-                                        </ui:fragment>
-                                        <ui:fragment rendered="#{not AdministrationForm.administrationPlugin.paused}">
-                                            <h:panelGroup styleClass="alert alert-success clearfix" rendered="#{AdministrationForm.administrationPlugin.running}" layout="block">
-                                                <i class="fa fa-play fa-5x pull-left"></i>
-                                                <h4>#{msgs.plugin_NliHotfolder_importing}</h4>
-                                                <strong>#{msgs.plugin_NliHotfolder_importstartedat}: </strong> 
-                                                <h:outputText value="#{AdministrationForm.administrationPlugin.startedRunningAt}">
-                                                    <f:convertDateTime dateStyle="full" pattern="yyyy-MM-dd HH:mm:ss z"/>
-                                                </h:outputText>
-                                                <br />
-                                                <strong>#{msgs.plugin_NliHotfolder_currentimportrunningtime}: </strong> #{AdministrationForm.administrationPlugin.runningSince}
-                                            </h:panelGroup>
-                                            <h:panelGroup styleClass="alert alert-info clearfix" rendered="#{not AdministrationForm.administrationPlugin.running}" layout="block">
-                                                <i class="fa fa-clock-o fa-5x pull-left"></i>
-                                                <h4>
-                                                    #{msgs.plugin_NliHotfolder_waiting}
-                                                </h4>
-                                            </h:panelGroup>
-                                            <button class="btn" jsf:action="#{AdministrationForm.administrationPlugin.pauseWork}">
-                                                #{msgs.plugin_NliHotfolder_pausework}
+        
+                                            <button
+                                                jsf:rendered="#{not AdministrationForm.administrationPlugin.paused}"
+                                                jsf:id="buttonLeft2"
+                                                class="btn d-flex align-items-center btn--title-action"
+                                                jsf:rel="tooltip"
+                                                jsf:action="#{AdministrationForm.administrationPlugin.pauseWork}"
+                                                title="#{msgs.plugin_administration_nli_hotfolder_pausework}">
+                                                <i class="fa fa-play"></i>
                                             </button>
+        
+                                        </div>
+                                    </intranda:boxTitle>
+        
+                                    <div class="p-4">
+        
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td>
+                                                    <h:outputText value="#{msgs.status}:"/>
+                                                </td>
+                                                <td>
+                                                    <!-- PAUSE MODE -->
+                                                    <h:outputText
+                                                        rendered="#{AdministrationForm.administrationPlugin.paused}"
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_hotfolderpaused}" />
+                                                    <!-- WAITING MODE -->
+                                                    <h:outputText
+                                                        rendered="#{not AdministrationForm.administrationPlugin.paused and not AdministrationForm.administrationPlugin.running}"
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_waiting}" />
+                                                    <!-- IMPORTING MODE -->
+                                                    <h:outputText
+                                                        rendered="#{not AdministrationForm.administrationPlugin.paused and AdministrationForm.administrationPlugin.running}"
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_importing}" />
+                                                </td>
+                                            </tr>
+        
+                                            <!-- ADDITIONAL ROWS FOR IMPORTING MODE -->
+                                            <ui:fragment
+                                                rendered="#{not AdministrationForm.administrationPlugin.paused and AdministrationForm.administrationPlugin.running}">
+                                                <tr>
+                                                    <td>
+                                                        <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_importstartedat}:" />
+                                                    </td>
+                                                    <td>
+                                                        <h:outputText
+                                                            value="#{AdministrationForm.administrationPlugin.startedRunningAt}">
+                                                            <f:convertDateTime
+                                                                dateStyle="full"
+                                                                pattern="yyyy-MM-dd HH:mm:ss z" />
+                                                        </h:outputText>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_currentimportrunningtime}:" />
+                                                    </td>
+                                                    <td>
+                                                        <h:outputText value="#{AdministrationForm.administrationPlugin.runningSince}" />
+                                                    </td>
+                                                </tr>
+                                            </ui:fragment>
+                                            <!-- // ADDITIONAL ROWS FOR IMPORTING MODE -->
+        
+                                        </table>
+                                    </div>
+        
+                                </intranda:box>
+                            </div>
+                            <!-- // BOX ON THE LEFT WITH STATUS -->
+
+                            <!-- BOX ON THE RIGHT WITH LOGS -->
+                            <div class="col-10" id="runInfoBox">
+                                <intranda:box
+                                    boxType="neutral"
+                                    boxTitle="false"
+                                    boxForm="false">
+    
+                                    <intranda:boxTitle title="#{msgs.plugin_administration_nli_hotfolder_logs}">
+    
+                                        <div class="actions d-flex">
+                                            <!-- BUTTON TO PREVIOUS LOG -->
+                                            <button
+                                                jsf:id="previousLogButton"
+                                                class="btn d-flex align-items-center btn--title-action"
+                                                jsf:rel="tooltip"
+                                                jsf:action="#{AdministrationForm.administrationPlugin.previousLog}"
+                                                title="#{msgs.plugin_administration_nli_hotfolder_previousEntry}">
+                                                <i class="fa fa-angle-left"></i>
+                                                <f:ajax
+                                                    execute="@form"
+                                                    render="runInfoBox" />
+                                            </button>
+                                            <!-- BUTTON TO NEXT LOG -->
+                                            <button
+                                                jsf:id="nextLogButton"
+                                                class="btn d-flex align-items-center btn--title-action"
+                                                jsf:rel="tooltip"
+                                                jsf:action="#{AdministrationForm.administrationPlugin.nextLog}"
+                                                title="#{msgs.plugin_administration_nli_hotfolder_nextEntry}">
+                                                <i class="fa fa-angle-right"></i>
+                                                <f:ajax
+                                                    execute="@form"
+                                                    render="runInfoBox" />
+                                            </button>
+    
+                                        </div>
+                                    </intranda:boxTitle>
+    
+                                    <div class="p-4">
+                                    
+                                        <h:outputText
+                                            styleClass="alert alert-danger d-block"
+                                            rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() lt 1}"
+                                            value="#{msgs.plugin_administration_nli_hotfolder_noLogEntriesAvailable}"/>
+                                                            
+                                        <ui:fragment rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() gt 0}">
+                                            <h:outputText value="#{AdministrationForm.administrationPlugin.orderOfRunInfo}" />
+                                            
+                                            <br/>
+                                            
+                                            <ui:repeat
+                                                var="folder"
+                                                value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
+                                                
+                                                <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
+                                                <div>
+                                                    <h4 style="display: inline;">#{folder}</h4>
+                                                    <button
+                                                        class="btn btn-blank float-end"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
+                                                        <h:outputText
+                                                            value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
+                                                        <f:ajax render="runInfoBox" />
+                                                    </button>
+                                                </div>
+                                                <!-- // Template name / Hotfolder name and button -->
+                                                
+                                                <hr />
+                                                
+                                                <!-- Table of error logs from the last run -->
+                                                <table
+                                                    class="table table-bordered table-hover"
+                                                    jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>#{msgs.plugin_administration_nli_hotfolder_process}</th>
+                                                            <th>#{msgs.plugin_administration_nli_hotfolder_result}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <ui:repeat
+                                                            var="io"
+                                                            value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
+                                                            <tr>
+                                                                <td>#{io.importFileName}</td>
+                                                                <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
+                                                            </tr>
+                                                        </ui:repeat>
+                                                    </tbody>
+                                                </table>
+                                                <!-- // Table -->
+                
+                                            </ui:repeat>
+                                        
                                         </ui:fragment>
+                                    
                                         
-                                        
-									</h:form>
-								</div>
-							</h:panelGroup>
-
-						</div>
-					</div>
-                    
-                    
-                    <div class="box box-color box-bordered blue" jsf:id="runInfoBox" jsf:rendered="#{LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
-                        <div class="box-title">
-                            <h3>
-                                <i class="fa fa-plug"></i>
-                                <h:outputText value="Last run info" />
-                            </h3>
-                        </div>
-                        <div class="box-content">
-	                        
-	                        <span>
-					            <button 
-									jsf:action="#{AdministrationForm.administrationPlugin.previousLog}"
-									jsf:id="previousLogButton" 
-									class="btn btn-primary font-size-s">
-									<i class="fa fa-angle-left"></i>
-									<h:outputText value=" #{msgs.lw_previousImage}" />
-									<f:ajax execute="@form" render="runInfoBox" />
-								</button>	
-							</span>
-
-                            <span>
-								<button 
-									jsf:action="#{AdministrationForm.administrationPlugin.nextLog}"
-									jsf:id="nextLogButton" 
-									class="btn btn-primary font-size-s">
-									<h:outputText value="#{msgs.lw_nextImage} " />
-									<i class="fa fa-angle-right"></i>
-									<f:ajax execute="@form" render="runInfoBox" />
-								</button>
-							</span>
-							
-							<span>
-							    <h:outputText value="#{AdministrationForm.administrationPlugin.orderOfRunInfo} " />
-							</span>
-		
-							<hr />
+                                    </div>
+                                </intranda:box>
+                            </div>
+                            <!-- // BOX ON THE RIGHT WITH LOGS -->
                         
-                            <ui:repeat var="folder" value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
-                                <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
-	                            <div>
-	                                <h4 style="display: inline;">#{folder}</h4>                         
-	                                <button class="btn pull-right" jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
-	                                    <h:outputText value="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'Hide' : 'Show'}" />
-	                                    <f:ajax render="runInfoBox" />
-	                                </button>
-	                            </div>
-	                            <!-- // Template name / Hotfolder name and button -->
-	                            <hr />
-	                            <!-- Table of error logs from the last run -->                            
-	                            <table class="table table-bordered table-hover" jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
-	                                <thead>
-	                                    <tr>
-	                                        <th>Process</th>
-	                                        <th>Result</th>
-	                                    </tr>
-	                                </thead>
-	                                <tbody>
-	                                    <ui:repeat var="io" value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
-	                                    <tr>
-	                                        <td>#{io.importFileName}</td>
-	                                        <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
-	                                    </tr>
-	                                    </ui:repeat>
-	                                </tbody>
-	                            </table>	                            
-	                            <!-- // Table -->
-	                            
-                            </ui:repeat>
-                            
                         </div>
-                    </div>
-				</div>
-			</div>
-		</h:panelGroup>
+                    </h:form>
+                </ui:fragment>
+                <!-- // ALLOWED -->
 
-	</composite:implementation>
+    </composite:implementation>
 </ui:composition>
