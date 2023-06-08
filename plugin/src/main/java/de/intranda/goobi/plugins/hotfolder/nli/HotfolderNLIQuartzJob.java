@@ -99,23 +99,10 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
-            // write result to a json file located at the hotfolderPath
-            ObjectMapper om = new ObjectMapper();
-            log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
-
-            Path resultsJsonPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
-
-            String reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
-            log.debug("reducedLastResult = " + reducedLastResult);
-
-            // TODO: How to use StorageProviderInterface to replace Files in the following case?
-            try (OutputStream out = Files.newOutputStream(resultsJsonPath, StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.CREATE)) {
-                out.write("[".getBytes());
-                // new results come first
-                out.write(om.writeValueAsBytes(guiResults));
-                // append old results
-                out.write(reducedLastResult.getBytes());
+            if (guiResults.size() > 0) {
+                updateRunsLog(hotfolderPath, guiResults, allowedNumberOfLogs);
+            } else {
+                log.debug("guiResults is empty, skipping...");
             }
 
         } catch (Exception e) {
@@ -132,7 +119,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.error("Error deleting NLI hotfolder lock file: {}", e);
             }
         }
-
     }
 
     /**
@@ -269,6 +255,29 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         return imports;
+    }
+
+    private void updateRunsLog(Path hotfolderPath, List<GUIImportResult> guiResults, int allowedNumberOfLogs) {
+        // write result to a json file located at the hotfolderPath
+        ObjectMapper om = new ObjectMapper();
+        log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
+
+        Path resultsJsonPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
+
+        // TODO: How to use StorageProviderInterface to replace Files in the following case?
+        try (OutputStream out = Files.newOutputStream(resultsJsonPath, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.CREATE)) {
+            String reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
+            log.debug("reducedLastResult = " + reducedLastResult);
+
+            out.write("[".getBytes());
+            // new results come first
+            out.write(om.writeValueAsBytes(guiResults));
+            // append old results
+            out.write(reducedLastResult.getBytes());
+        } catch (IOException e) {
+            log.error("Error trying to update the log file: {}", e);
+        }
     }
 
     private void updateFolderOwnerMaps(HotfolderFolder hff) {
