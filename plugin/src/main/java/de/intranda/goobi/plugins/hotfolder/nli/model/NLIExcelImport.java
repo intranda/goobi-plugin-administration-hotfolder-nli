@@ -373,7 +373,7 @@ public class NLIExcelImport {
         }
 
         // check the last modification time of imageSourceFolder to see if the configured block timeout is over
-        int minutes = getConfig().getSourceImageFolderMofidicationBlockTimout();
+        Integer minutes = getConfig().getSourceImageFolderMofidicationBlockTimeout();
         Duration blockTimeoutDuration = Duration.of(minutes, ChronoUnit.MINUTES);
         Instant lastModifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(imageSourceFolder));
         if (lastModifiedInstant.isAfter(Instant.now().minus(blockTimeoutDuration))) {

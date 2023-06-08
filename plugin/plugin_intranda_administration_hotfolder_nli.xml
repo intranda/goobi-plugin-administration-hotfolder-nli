@@ -24,7 +24,7 @@
         	<end>7</end>
         </schedule>
         
-        <sourceImageFolderMofidicationBlockTimout>30</sourceImageFolderMofidicationBlockTimout>
+        <sourceImageFolderMofidicationBlockTimeout>30</sourceImageFolderMofidicationBlockTimeout>
         
         <searchField>12</searchField>
         <!-- define in which row the header is written, usually 1 -->
