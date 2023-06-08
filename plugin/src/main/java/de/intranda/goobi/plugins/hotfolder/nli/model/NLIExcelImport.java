@@ -360,11 +360,11 @@ public class NLIExcelImport {
     }
 
     /**
-     * Checks that the given folder exists, hasn't been modified within the last 30 minutes and contains at least one (image) file and no symlinks or
+     * Checks that the given folder exists, hasn't been modified within the last N minutes and contains at least one (image) file and no symlinks or
      * folders
      * 
      * @param imageSourceFolder path to the image source folder
-     * @throws IOException if an error occured parsing the given folder
+     * @throws IOException if an error occurred parsing the given folder
      * @throws ImportException if any of the above conditions are met, meaning that the folder is not ready for import
      */
     private void checkImageSourceFolder(Path imageSourceFolder) throws IOException, ImportException {
@@ -377,8 +377,8 @@ public class NLIExcelImport {
         Duration blockTimeoutDuration = Duration.of(minutes, ChronoUnit.MINUTES);
         Instant lastModifiedInstant = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(imageSourceFolder));
         if (lastModifiedInstant.isAfter(Instant.now().minus(blockTimeoutDuration))) {
-            log.debug("Image folder has been modified in the last {} minutes", minutes);
-            //            throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
+            // comment out the following line or configure the <sourceImageFolderMofidicationBlockTimout> block to allow a fast test
+            throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
         }
 
         // TODO: How to use StorageProviderInterface to replace Files in the following cases?
