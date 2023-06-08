@@ -38,6 +38,7 @@ import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
+import spark.utils.StringUtils;
 
 @Log4j2
 public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
@@ -352,7 +353,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             if (excelImport.shouldDeleteSourceFiles()) {
                 excelImport.deleteSourceFiles(hff, record);
             }
-        }
+        } // what about ImportReturnValue.NoData and ImportReturnValue.WriteError? - Zehong
 
         return io;
     }
@@ -382,9 +383,24 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
+        //        log.debug("reading lastResults from " + resultsJsonPath);
+        //        String lastResults = FileUtils.readFileToString(resultsJsonPath.toFile(), StandardCharsets.UTF_8);
+        //        //        String lastResults = new String(Files.readAllBytes(resultsJsonPath));
+        //        log.debug("lastResults = " + lastResults);
         String lastResults = "";
         try (InputStream inputStream = storageProvider.newInputStream(resultsJsonPath)) {
-            lastResults = new String(inputStream.readAllBytes());
+            //        String lastResults = Files.readString(resultsJsonPath);
+        //        String lastResults = "";
+        //        try (InputStream inputStream = new FileInputStream(new File(resultsJsonPath.toString()))) {
+        log.debug("reading lastResults from " + resultsJsonPath);
+        lastResults = new String(inputStream.readAllBytes());
+        log.debug("lastResults = " + lastResults);
+    }
+
+        if (StringUtils.isBlank(lastResults)) {
+            // the log file is still empty
+            //            log.debug("lastResults is blank");
+            return "]";
         }
 
         lastResults = ",\n" + lastResults.substring(1);

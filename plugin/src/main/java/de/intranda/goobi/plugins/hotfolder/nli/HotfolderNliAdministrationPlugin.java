@@ -141,7 +141,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
         updateListOfResults(lastRunInfoPath);
 
-        List<GUIImportResult> results = listOfResults.get(logNumber);
+        List<GUIImportResult> results = listOfResults.size() > 0 ? listOfResults.get(logNumber) : new ArrayList<>();
 
         // clearing up old entries and reload from the json file
         lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
@@ -175,6 +175,10 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         if (lastRunInfoModified == null || lastModified.isAfter(lastRunInfoModified)) {
             try (InputStream src = storageProvider.newInputStream(lastRunInfoPath)) {
                 listOfResults = om.readValue(src, typeReferenceOfList);
+            } catch (Exception e) {
+                // the log file is still empty
+                log.debug("Error while trying to update the list of results: {}", e.getMessage());
+                listOfResults = new ArrayList<>();
             }
             lastRunInfoModified = lastModified;
         }
