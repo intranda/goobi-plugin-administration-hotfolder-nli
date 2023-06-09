@@ -265,11 +265,18 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
         Path resultsJsonPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
 
+        String reducedLastResult = "";
+        try {
+            reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
+        } catch (IOException e) {
+            log.error("Error trying to update the log file: {}", e);
+            return;
+        }
+        log.debug("reducedLastResult = " + reducedLastResult);
+
         // TODO: How to use StorageProviderInterface to replace Files in the following case?
         try (OutputStream out = Files.newOutputStream(resultsJsonPath, StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.CREATE)) {
-            String reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
-            log.debug("reducedLastResult = " + reducedLastResult);
 
             out.write("[".getBytes());
             // new results come first
@@ -383,23 +390,14 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
-        //        log.debug("reading lastResults from " + resultsJsonPath);
-        //        String lastResults = FileUtils.readFileToString(resultsJsonPath.toFile(), StandardCharsets.UTF_8);
-        //        //        String lastResults = new String(Files.readAllBytes(resultsJsonPath));
-        //        log.debug("lastResults = " + lastResults);
         String lastResults = "";
         try (InputStream inputStream = storageProvider.newInputStream(resultsJsonPath)) {
-            //        String lastResults = Files.readString(resultsJsonPath);
-        //        String lastResults = "";
-        //        try (InputStream inputStream = new FileInputStream(new File(resultsJsonPath.toString()))) {
-        log.debug("reading lastResults from " + resultsJsonPath);
-        lastResults = new String(inputStream.readAllBytes());
-        log.debug("lastResults = " + lastResults);
-    }
+            lastResults = new String(inputStream.readAllBytes());
+        }
 
         if (StringUtils.isBlank(lastResults)) {
             // the log file is still empty
-            //            log.debug("lastResults is blank");
+            log.debug(resultsJsonPath + " is blank");
             return "]";
         }
 
