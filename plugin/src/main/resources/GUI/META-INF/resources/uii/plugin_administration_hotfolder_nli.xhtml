@@ -193,6 +193,7 @@
                                                     jsf:rendered="#{AdministrationForm.administrationPlugin.showFolders[folder]}">
                                                     <thead>
                                                         <tr>
+                                                            <th>#{msgs.time}</th>
                                                             <th>#{msgs.plugin_administration_nli_hotfolder_process}</th>
                                                             <th>#{msgs.plugin_administration_nli_hotfolder_result}</th>
                                                         </tr>
@@ -202,6 +203,7 @@
                                                             var="io"
                                                             value="#{AdministrationForm.administrationPlugin.lastRunInfo[folder]}">
                                                             <tr>
+                                                                <td>#{empty io.timestamp ? 'unknown' : io.timestamp}</td>
                                                                 <td>#{io.importFileName}</td>
                                                                 <td>#{empty io.errorMessage ? 'OK' : io.errorMessage}</td>
                                                             </tr>
