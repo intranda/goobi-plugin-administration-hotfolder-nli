@@ -53,6 +53,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     // map that hold maps between folder paths and owner names
     private Map<HotfolderFolder, Map<Path, String>> folderOwnerMaps = new HashMap<>();
 
+    private boolean useTimeDifference;
+
     @Override
     public String getJobName() {
         return "HotfolderNLIQuartzJob";
@@ -65,8 +67,18 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     public void execute() {
         XMLConfiguration config = ConfigPlugins.getPluginConfig(title);
         Path hotfolderPath = Paths.get(config.getString("hotfolderPath"));
+        useTimeDifference = config.getBoolean("useTimeDifference", false);
         // assure that allowedNumberOfLogs is at least 1
         int allowedNumberOfLogs = Math.max(config.getInt("allowedNumberOfLogs", 1), 1);
+
+        int allowedTimeDifference = Math.max(config.getInt("allowedTimeDifference", 1), 1);
+
+        log.debug("useTimeDifference = " + useTimeDifference);
+        if (useTimeDifference) {
+            log.debug("allowedTimeDifference = " + allowedTimeDifference);
+        } else {
+            log.debug("allowedNumberOfLogs = " + allowedNumberOfLogs);
+        }
 
         if (!storageProvider.isFileExists(hotfolderPath)) {
             log.info("NLI hotfolder is not present: " + hotfolderPath);
@@ -101,7 +113,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     .collect(Collectors.toList());
 
             if (guiResults.size() > 0) {
-                updateRunsLog(hotfolderPath, guiResults, allowedNumberOfLogs);
+                int numberSetting = useTimeDifference ? allowedTimeDifference : allowedNumberOfLogs;
+                updateRunsLog(hotfolderPath, guiResults, numberSetting);
             } else {
                 log.debug("guiResults is empty, skipping...");
             }
@@ -258,7 +271,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         return imports;
     }
 
-    private void updateRunsLog(Path hotfolderPath, List<GUIImportResult> guiResults, int allowedNumberOfLogs) {
+    private void updateRunsLog(Path hotfolderPath, List<GUIImportResult> guiResults, int numberSetting) {
         // write result to a json file located at the hotfolderPath
         ObjectMapper om = new ObjectMapper();
         log.info("NLI hotfolder: Writing import results to " + hotfolderPath);
@@ -267,7 +280,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
         String reducedLastResult = "";
         try {
-            reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, allowedNumberOfLogs);
+            reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, numberSetting);
         } catch (IOException e) {
             log.error("Error trying to update the log file: {}", e);
             return;
@@ -379,17 +392,12 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
     }
 
-    private String getReducedPreviousRunInfos(Path resultsJsonPath, int allowedNumberOfLogs) throws IOException {
+    private String getReducedPreviousRunInfos(Path resultsJsonPath, int numberSetting) throws IOException {
         if (!storageProvider.isFileExists(resultsJsonPath)) {
             storageProvider.createFile(resultsJsonPath);
             return "]";
         }
 
-        if (allowedNumberOfLogs <= 1) {
-            return "]";
-        }
-
-        // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
         String lastResults = "";
         try (InputStream inputStream = storageProvider.newInputStream(resultsJsonPath)) {
             lastResults = new String(inputStream.readAllBytes());
@@ -401,6 +409,17 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             return "]";
         }
 
+        return useTimeDifference ? getReducedPreviousRunInfosGivenTimeDifference(lastResults, numberSetting)
+                : getReducedPreviousRunInfosGivenNumberLimit(lastResults, numberSetting);
+    }
+
+    private String getReducedPreviousRunInfosGivenNumberLimit(String lastResults, int allowedNumberOfLogs) throws IOException {
+
+        if (allowedNumberOfLogs <= 1) {
+            return "]";
+        }
+
+        // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
         lastResults = ",\n" + lastResults.substring(1);
         log.debug("lastResults = " + lastResults);
 
@@ -428,6 +447,11 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
 
         return sb.toString();
+    }
+
+    private String getReducedPreviousRunInfosGivenTimeDifference(String lastResults, int allowedTimeDifference) {
+
+        return "";
     }
 
 }
