@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -88,7 +89,7 @@ public class NLIExcelImport {
     private static String title = "intranda_administration_hotfolder_nli";
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
-    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub|jpe?g)";
+    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
 
     private List<ImportType> importTypes;
     private String workflowTitle;
@@ -751,9 +752,11 @@ public class NLIExcelImport {
                 return null;
             }
             return Paths.get(foldername);
-        } else {
-            throw new ImportException("No images to copy: Image source folder " + imageSourceFolder + " does not exist");
         }
+
+        // imageSourceFolder does not exist
+        throw new ImportException("No images to copy: Image source folder " + imageSourceFolder + " does not exist");
+
     }
 
     /**
@@ -878,12 +881,15 @@ public class NLIExcelImport {
      *            copied without name change. Otherwise they are named <fileNamePrefix>_i.tif/pdf/epub in the target folder, where i is an
      *            incrementing integer starting at value 1
      * @throws IOException
+     * @throws ImportException
      */
-    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String fileNamePrefix) throws IOException {
+    private void copyImagesToFolder(Path sourceImageFolder, String copyToDirectory, String fileNamePrefix) throws IOException, ImportException {
 
         List<Path> dataInSourceImageFolder = storageProvider.listFiles(sourceImageFolder.toString());
         dataInSourceImageFolder.sort(Comparator.comparing(o -> o.toFile().getName().toUpperCase()));
         storageProvider.createDirectories(Paths.get(copyToDirectory));
+
+        Set<String> invalidSuffixes = new HashSet<>();
 
         int iNumber = 1;
         for (Path currentData : dataInSourceImageFolder) {
@@ -904,9 +910,22 @@ public class NLIExcelImport {
             } else { // if files do not have allowed suffices, then try to report this instead of making empty processes
                 String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
                 log.debug("The file named '{}' has an invalid suffix: {} ", fileName, suffix);
+                invalidSuffixes.add(suffix);
                 dirtyFolderSet.add(sourceImageFolder);
                 invalidFileSet.add(currentData);
             }
+        }
+
+        // report invalid suffixes
+        if (!invalidSuffixes.isEmpty()) {
+            StringBuilder suffixErrorBuilder = new StringBuilder("Invalid file type detected: ");
+            for (String invalidSuffix : invalidSuffixes) {
+                suffixErrorBuilder.append(invalidSuffix).append(", ");
+            }
+            int builderLength = suffixErrorBuilder.length();
+            String suffixErrorMessage = suffixErrorBuilder.substring(0, builderLength - 2);
+            // message of the ImportException will be recorded to the ImportObject
+            throw new ImportException(suffixErrorMessage);
         }
     }
 

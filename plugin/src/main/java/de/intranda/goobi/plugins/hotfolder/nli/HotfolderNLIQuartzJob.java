@@ -370,14 +370,15 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 io.setImportReturnValue(ImportReturnValue.NoData);
             }
 
-            excelImport.deleteTempImportData(io);
-
         } else if (io.getImportReturnValue() == ImportReturnValue.DataAllreadyExists) {
             //record exists and was overwritten. Temp import files have already been deleted. Just delete source folder
             if (excelImport.shouldDeleteSourceFiles()) {
                 excelImport.deleteSourceFiles(hff, record);
             }
         } // what about ImportReturnValue.NoData and ImportReturnValue.WriteError? - Zehong
+
+        // delete temporary data anyway, no harm even if there were none
+        excelImport.deleteTempImportData(io);
 
         return io;
     }
