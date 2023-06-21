@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.CSVGenerator;
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.StorageProvider;
@@ -220,6 +221,10 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         }
 
         return str;
+    }
+
+    public void generateCSV() {
+        CSVGenerator generator = new CSVGenerator(hotfolderPath, RESULTS_JSON_FILENAME);
     }
 
 }
