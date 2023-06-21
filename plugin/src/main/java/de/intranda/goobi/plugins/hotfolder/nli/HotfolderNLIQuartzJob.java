@@ -466,10 +466,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         for (String result : resultsArray) {
             if (!checkTimeStamp(result, now, allowedTimeDifference)) {
                 log.debug("Allowed time difference reached, discarding the following logs.");
-                // remove the last ",\n"
-                int sbLength = sb.length();
-                sb.delete(sbLength - 2, sbLength);
-                sb.append("]");
                 break;
             }
 
@@ -477,6 +473,11 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             sb.append(result);
             sb.append(",\n");
         }
+
+        // remove the last ",\n"
+        int sbLength = sb.length();
+        sb.delete(sbLength - 2, sbLength);
+        sb.append("]");
 
         return sb.toString();
     }
