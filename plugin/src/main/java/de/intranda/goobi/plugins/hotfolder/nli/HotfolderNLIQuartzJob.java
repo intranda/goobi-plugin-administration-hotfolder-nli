@@ -70,6 +70,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
     private boolean useTimeDifference;
 
+    private String ownerType;
+
     @Override
     public String getJobName() {
         return "HotfolderNLIQuartzJob";
@@ -87,6 +89,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         int allowedNumberOfLogs = Math.max(config.getInt("allowedNumberOfLogs", 1), 1);
 
         int allowedTimeDifference = Math.max(config.getInt("allowedTimeDifference", 1), 1);
+
+        ownerType = config.getString("ownerType", "");
 
         log.debug("useTimeDifference = " + useTimeDifference);
         if (useTimeDifference) {
@@ -404,7 +408,10 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.debug("ownerName = " + ownerName);
                 String message = "Owner name: " + ownerName;
                 Helper.addMessageToProcessJournal(process.getId(), LogType.INFO, message);
-                logOwnerNameIntoMetadata(process, ownerName);
+                // log owner name into metadata if it is configured
+                if (StringUtils.isNotBlank(ownerType)) {
+                    logOwnerNameIntoMetadata(process, ownerName);
+                }
             }
         }
     }
@@ -417,27 +424,37 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             DigitalDocument digital = fileformat.getDigitalDocument();
             DocStruct logical = digital.getLogicalDocStruct();
 
-            MetadataType mdType = prefs.getMetadataTypeByName("Creator");
-            Person creator = new Person(mdType);
-            creator.setFirstname(ownerName);
+            MetadataType mdType = prefs.getMetadataTypeByName(ownerType);
+            if (mdType == null) {
+                String message = "The configured ownerType " + ownerType + " does not exist. No Metadata will be added.";
+                Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
+                return;
+            }
 
-            log.debug("Adding Metadata Creator: " + ownerName);
-            logical.addPerson(creator);
+            if (!mdType.getIsPerson()) {
+                String message = "The configured ownerType " + ownerType + " is not a person type. No Metadata will be added.";
+                Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
+                return;
+            }
+
+            log.debug("Adding Metadata " + ownerType + ": " + ownerName);
+            Person person = new Person(mdType);
+            person.setFirstname(ownerName);
+            logical.addPerson(person);
 
             process.writeMetadataFile(fileformat);
 
-        } catch (ReadException | IOException | SwapException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (PreferencesException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        } catch (ReadException | IOException | SwapException | PreferencesException e) {
+            String message = "Failed to read the mets file and get the rulesets.";
+            Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
+
         } catch (MetadataTypeNotAllowedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            String message = "The configured ownerType " + ownerType + " is not allowed.";
+            Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
+
         } catch (WriteException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            String message = "Failed to save the mets file.";
+            Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
         }
     }
 
