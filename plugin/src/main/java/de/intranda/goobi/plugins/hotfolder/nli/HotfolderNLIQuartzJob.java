@@ -40,9 +40,20 @@ import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.HelperSchritte;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
+import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import lombok.extern.log4j.Log4j2;
 import spark.utils.StringUtils;
+import ugh.dl.DigitalDocument;
+import ugh.dl.DocStruct;
+import ugh.dl.Fileformat;
+import ugh.dl.MetadataType;
+import ugh.dl.Person;
+import ugh.dl.Prefs;
+import ugh.exceptions.MetadataTypeNotAllowedException;
+import ugh.exceptions.PreferencesException;
+import ugh.exceptions.ReadException;
+import ugh.exceptions.WriteException;
 
 @Log4j2
 public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
@@ -393,7 +404,40 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.debug("ownerName = " + ownerName);
                 String message = "Owner name: " + ownerName;
                 Helper.addMessageToProcessJournal(process.getId(), LogType.INFO, message);
+                logOwnerNameIntoMetadata(process, ownerName);
             }
+        }
+    }
+
+    private void logOwnerNameIntoMetadata(org.goobi.beans.Process process, String ownerName) {
+        try {
+            Fileformat fileformat = process.readMetadataFile();
+            Prefs prefs = process.getRegelsatz().getPreferences();
+
+            DigitalDocument digital = fileformat.getDigitalDocument();
+            DocStruct logical = digital.getLogicalDocStruct();
+
+            MetadataType mdType = prefs.getMetadataTypeByName("Creator");
+            Person creator = new Person(mdType);
+            creator.setFirstname(ownerName);
+
+            log.debug("Adding Metadata Creator: " + ownerName);
+            logical.addPerson(creator);
+
+            process.writeMetadataFile(fileformat);
+
+        } catch (ReadException | IOException | SwapException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (PreferencesException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (MetadataTypeNotAllowedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (WriteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
@@ -418,7 +462,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 : getReducedPreviousRunInfosGivenNumberLimit(lastResults, numberSetting);
     }
 
-    private String getReducedPreviousRunInfosGivenNumberLimit(String lastResults, int allowedNumberOfLogs) throws IOException {
+    private String getReducedPreviousRunInfosGivenNumberLimit(String lastResults, int allowedNumberOfLogs) {
 
         if (allowedNumberOfLogs <= 1) {
             return "]";
