@@ -9,7 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +30,7 @@ import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
@@ -450,8 +454,56 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     private String getReducedPreviousRunInfosGivenTimeDifference(String lastResults, int allowedTimeDifference) {
+        // lastResults has form [[{},{}],\n[{},{}],\n[{},{}]]
+        // get rid of the first [ and the last ]
+        String results = lastResults.substring(1, lastResults.length() - 1);
+        // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...], 
+        // where each array represents a log entry of one previous run
+        String[] resultsArray = results.split(",?\\n");
+        LocalDateTime now = LocalDateTime.now();
 
-        return "";
+        StringBuilder sb = new StringBuilder(",\n");
+        for (String result : resultsArray) {
+            if (!checkTimeStamp(result, now, allowedTimeDifference)) {
+                log.debug("Allowed time difference reached, discarding the following logs.");
+                // remove the last ",\n"
+                int sbLength = sb.length();
+                sb.delete(sbLength - 2, sbLength);
+                sb.append("]");
+                break;
+            }
+
+            // time stamp check passed
+            sb.append(result);
+            sb.append(",\n");
+        }
+
+        return sb.toString();
+    }
+
+    private boolean checkTimeStamp(String result, LocalDateTime now, int allowedTimeDifference) {
+        DateTimeFormatter formatter = GUIImportResult.getFormatter();
+        Gson gson = new Gson();
+        try {
+            GUIImportResult[] importResults = gson.fromJson(result, GUIImportResult[].class);
+            for (GUIImportResult importResult : importResults) {
+                String timestamp = importResult.getTimestamp();
+                LocalDateTime dateTime = LocalDateTime.parse(timestamp, formatter);
+                Duration duration = Duration.between(dateTime, now);
+                if (duration.toHours() < allowedTimeDifference) {
+                    return true;
+                }
+            }
+            return false;
+
+        } catch (DateTimeParseException e) {
+            log.debug("DateTimeParseException caught during the time stamp check.");
+            return false;
+
+        } catch (Exception ex) {
+            log.debug("Exception caught during the time stamp check, probably an MalformedJsonException.");
+            return false;
+        }
     }
 
 }
