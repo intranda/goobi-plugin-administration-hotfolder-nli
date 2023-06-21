@@ -368,8 +368,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             if (processNew != null && processNew.getId() != null) {
                 log.info("NLI hotfolder - created process: " + processNew.getId());
 
-                // log owner name into process journal
-                logOwnerNameIntoProcessJournal(hff, processNew);
+                // log owner name into process journal and metadata
+                logOwnerName(hff, processNew);
 
                 //close first step
                 HelperSchritte hs = new HelperSchritte();
@@ -398,7 +398,22 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         return io;
     }
 
-    private void logOwnerNameIntoProcessJournal(HotfolderFolder hff, org.goobi.beans.Process process) {
+    private void logOwnerName(HotfolderFolder hff, org.goobi.beans.Process process) {
+        String ownerName = getOwnerName(hff, process);
+        if (StringUtils.isBlank(ownerName)) {
+            return;
+        }
+
+        // ownerName is not blank, log it
+        logOwnerNameIntoProcessJournal(process, ownerName);
+
+        // save it into metadata if the ownerType is configured
+        if (StringUtils.isNotBlank(ownerType)) {
+            logOwnerNameIntoMetadata(process, ownerName);
+        }
+    }
+
+    private String getOwnerName(HotfolderFolder hff, org.goobi.beans.Process process) {
         Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
         String processTitle = process.getTitel();
         for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
@@ -406,14 +421,17 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             if (processTitle.endsWith(folderName)) {
                 String ownerName = entry.getValue();
                 log.debug("ownerName = " + ownerName);
-                String message = "Owner name: " + ownerName;
-                Helper.addMessageToProcessJournal(process.getId(), LogType.INFO, message);
-                // log owner name into metadata if it is configured
-                if (StringUtils.isNotBlank(ownerType)) {
-                    logOwnerNameIntoMetadata(process, ownerName);
-                }
+                return ownerName;
             }
         }
+
+        // not found
+        return "";
+    }
+
+    private void logOwnerNameIntoProcessJournal(org.goobi.beans.Process process, String ownerName) {
+        String message = "Owner name: " + ownerName;
+        Helper.addMessageToProcessJournal(process.getId(), LogType.INFO, message);
     }
 
     private void logOwnerNameIntoMetadata(org.goobi.beans.Process process, String ownerName) {
