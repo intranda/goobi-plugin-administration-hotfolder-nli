@@ -205,37 +205,12 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         numberUpdated = true;
     }
 
-    public String getOrderOfRunInfo() {
-        if (logNumber == 0) {
-            return "The Last Run";
-        }
-
-        String ordinalSuffix = appendOrdinalSuffix(logNumber);
-        return "The " + ordinalSuffix + " Run Before The Last";
-    }
-
-    private String appendOrdinalSuffix(int i) {
-        String str = String.valueOf(i);
-        if (str.endsWith("1")) {
-            str += "st";
-        } else if (str.endsWith("2")) {
-            str += "nd";
-        } else if (str.endsWith("3")) {
-            str += "rd";
-        } else {
-            str += "th";
-        }
-
-        return str;
-    }
-
     public void generateCSV() {
         CSVGenerator generator = new CSVGenerator(hotfolderPath, RESULTS_JSON_FILENAME);
+        // generate csv file
         generator.generateFile();
-
-        Path csvFilePath = generator.getCSVFilePath();
-
-        downloadFile(csvFilePath);
+        // download the generated csv file
+        downloadFile(generator.getCsvFilePath());
     }
 
     private void downloadFile(Path filePath) {
@@ -249,6 +224,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         response.setHeader("Content-Type", "application/octet-stream");
         response.setHeader("Content-Disposition", "attachment;filename=" + filePath.getFileName().toString());
 
+        // streaming the contents of the file
         File file = filePath.toFile();
         try (OutputStream responseOutputStream = response.getOutputStream();
                 InputStream fileInputStream = new FileInputStream(file)) {

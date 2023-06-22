@@ -536,10 +536,10 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private String getReducedPreviousRunInfosGivenTimeDifference(String lastResults, int allowedTimeDifference) {
         // lastResults has form [[{},{}],\n[{},{}],\n[{},{}]]
         // get rid of the first [ and the last ]
-        String results = lastResults.substring(1, lastResults.length() - 1);
+        String results = lastResults.substring(lastResults.indexOf("[") + 1, lastResults.lastIndexOf("]"));
         // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...], 
         // where each array represents a log entry of one previous run
-        String[] resultsArray = results.split(",?\\n");
+        String[] resultsArray = results.split(",\\n");
         LocalDateTime now = LocalDateTime.now();
 
         StringBuilder sb = new StringBuilder(",\n");
