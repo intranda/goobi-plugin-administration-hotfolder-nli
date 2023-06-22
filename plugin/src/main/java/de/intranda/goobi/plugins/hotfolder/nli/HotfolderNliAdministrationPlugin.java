@@ -225,6 +225,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
 
     public void generateCSV() {
         CSVGenerator generator = new CSVGenerator(hotfolderPath, RESULTS_JSON_FILENAME);
+        generator.generateFile();
     }
 
 }

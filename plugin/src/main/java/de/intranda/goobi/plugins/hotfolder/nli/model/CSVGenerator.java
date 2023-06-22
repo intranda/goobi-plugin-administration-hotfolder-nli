@@ -2,8 +2,13 @@ package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.gson.Gson;
 
@@ -34,40 +39,77 @@ public class CSVGenerator {
     }
 
     public void generateFile() {
-        GUIImportResult[] importResults = getImportResults();
+        List<GUIImportResult[]> importResults = getImportResults();
 
         String header = "time,\tprocess,\tresult\n";
         StringBuilder contentBuilder = new StringBuilder(header);
-        for (GUIImportResult result : importResults) {
-            String entry = generateEntryString(result);
-            contentBuilder.append(entry);
+        for (GUIImportResult[] importResult : importResults) {
+            String importResultString = generateImportResultString(importResult);
+            contentBuilder.append(importResultString);
         }
 
         String content = contentBuilder.toString();
         log.debug("content = " + content);
 
+        Path csvPath = hotfolderPath.resolve(csvFileName);
+        // TODO: How to use StorageProviderInterface to replace Files in the following case?
+        try (OutputStream out = Files.newOutputStream(csvPath, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.CREATE)) {
+
+            out.write(content.getBytes());
+
+        } catch (IOException e) {
+            log.error("Error trying to save the csv file: {}", e);
+        }
+    }
+
+    private String generateImportResultString(GUIImportResult[] importResult) {
+        StringBuilder resultBuilder = new StringBuilder();
+        for (GUIImportResult result : importResult) {
+            resultBuilder.append(generateEntryString(result));
+        }
+
+        return resultBuilder.toString();
     }
 
     private String generateEntryString(GUIImportResult result) {
         StringBuilder entryBuilder = new StringBuilder();
-        entryBuilder.append(result.getTimestamp());
+        String timestamp = result.getTimestamp();
+        String fileName = result.getImportFileName();
+        String errorMessage = result.getErrorMessage();
+        // handle blank values
+        if (StringUtils.isBlank(timestamp)) {
+            timestamp = "unknown";
+        }
+        if (StringUtils.isBlank(errorMessage)) {
+            errorMessage = "ok";
+        }
+        // timestamp, fileName, errorMessage
+        entryBuilder.append(timestamp);
         entryBuilder.append(",\t");
-        entryBuilder.append(result.getImportFileName());
+        entryBuilder.append(fileName);
         entryBuilder.append(",\t");
-        entryBuilder.append(result.getErrorMessage());
+        entryBuilder.append(errorMessage);
         entryBuilder.append("\n");
 
         return entryBuilder.toString();
     }
 
-    private GUIImportResult[] getImportResults() {
+    private List<GUIImportResult[]> getImportResults() {
         String resultsString = prepareResultsString();
         if (StringUtils.isBlank(resultsString)) {
             log.debug("There is no log entry found.");
             return null;
         }
+        // resultsString has form [{},{}],\n[{},{}],\n[{},{}]
+        List<GUIImportResult[]> importResults = new ArrayList<>();
+        String[] results = resultsString.split(",\\n");
+        for (String result : results) {
+            GUIImportResult[] importResult = gson.fromJson(result, GUIImportResult[].class);
+            importResults.add(importResult);
+        }
 
-        return null;
+        return importResults;
     }
 
     private String prepareResultsString() {
@@ -80,6 +122,7 @@ public class CSVGenerator {
             e.printStackTrace();
         }
 
+        // resultsString has form [[{},{}],\n[{},{}],\n[{},{}]]
         if (StringUtils.isNotBlank(resultsString)) {
             // remove the first [ and the last ]
             resultsString = resultsString.substring(1, resultsString.length() - 1);
