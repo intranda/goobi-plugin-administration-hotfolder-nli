@@ -2,8 +2,15 @@
     <!-- hotfolder -->
     <hotfolderPath>/opt/digiverso/import/hotfolder</hotfolderPath>
 
+    <!-- if true then allowedTimeDifference will be used, otherwise allowedNumberOfLogs will be used -->
+    <useTimeDifference>false</useTimeDifference>
+    <!-- maximum number of hours that an entry of run info should be maintained in the log, DEFAULT 1 -->
+    <allowedTimeDifference>24</allowedTimeDifference>
     <!-- maximum number of runs whose run info should be saved into the log, DEFAULT 1 -->
-    <allowedNumberOfLogs>3</allowedNumberOfLogs>
+    <allowedNumberOfLogs>100</allowedNumberOfLogs>
+    <!-- MetadataType that should be used for saving the owner's name, and it should be an allowed PERSON type for the configured publicationType. -->
+    <!-- If left blank or incorrectly configured then no Metadata will be created to hold the owner's name. -->
+    <ownerType>Creator</ownerType>
    
     <config>
         <!-- Use this config for the following workflow template: -->
