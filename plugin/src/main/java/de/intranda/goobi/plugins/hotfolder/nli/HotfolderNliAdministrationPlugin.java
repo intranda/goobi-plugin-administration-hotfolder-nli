@@ -1,7 +1,10 @@
 package de.intranda.goobi.plugins.hotfolder.nli;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -12,6 +15,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.faces.context.FacesContext;
+import javax.servlet.http.HttpServletResponse;
 
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.plugin.interfaces.IAdministrationPlugin;
@@ -226,6 +232,41 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     public void generateCSV() {
         CSVGenerator generator = new CSVGenerator(hotfolderPath, RESULTS_JSON_FILENAME);
         generator.generateFile();
+
+        Path csvFilePath = generator.getCSVFilePath();
+
+        downloadFile(csvFilePath);
+    }
+
+    private void downloadFile(Path filePath) {
+        // prepare FacesContext
+        FacesContext facesContext = FacesContext.getCurrentInstance();
+
+        HttpServletResponse response =
+                (HttpServletResponse) facesContext.getExternalContext().getResponse();
+
+        response.reset();
+        response.setHeader("Content-Type", "application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment;filename=" + filePath.getFileName().toString());
+
+        File file = filePath.toFile();
+        try (OutputStream responseOutputStream = response.getOutputStream();
+                InputStream fileInputStream = new FileInputStream(file)) {
+
+            byte[] bytesBuffer = new byte[2048];
+            int bytesRead;
+            while ((bytesRead = fileInputStream.read(bytesBuffer)) > 0) {
+                responseOutputStream.write(bytesBuffer, 0, bytesRead);
+            }
+
+            responseOutputStream.flush();
+
+        } catch (IOException e) {
+            log.error("IOException caught while trying to download the file: {}", e);
+            log.error("Failed to download the file from: " + filePath);
+        }
+
+        facesContext.responseComplete();
     }
 
 }

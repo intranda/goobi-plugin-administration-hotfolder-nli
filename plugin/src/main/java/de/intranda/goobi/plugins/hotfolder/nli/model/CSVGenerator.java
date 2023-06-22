@@ -38,6 +38,10 @@ public class CSVGenerator {
         return csvName;
     }
 
+    public Path getCSVFilePath() {
+        return hotfolderPath.resolve(csvFileName);
+    }
+
     public void generateFile() {
         List<GUIImportResult[]> importResults = getImportResults();
 
@@ -51,7 +55,7 @@ public class CSVGenerator {
         String content = contentBuilder.toString();
         log.debug("content = " + content);
 
-        Path csvPath = hotfolderPath.resolve(csvFileName);
+        Path csvPath = getCSVFilePath();
         // TODO: How to use StorageProviderInterface to replace Files in the following case?
         try (OutputStream out = Files.newOutputStream(csvPath, StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.CREATE)) {
@@ -62,6 +66,7 @@ public class CSVGenerator {
             log.error("Error trying to save the csv file: {}", e);
         }
     }
+
 
     private String generateImportResultString(GUIImportResult[] importResult) {
         StringBuilder resultBuilder = new StringBuilder();
