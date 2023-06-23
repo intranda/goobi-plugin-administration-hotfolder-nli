@@ -40,7 +40,7 @@ public class CSVGenerator {
     public void generateFile() {
         List<GUIImportResult[]> importResults = getImportResults();
 
-        String header = "Time,\tProcess,\tResult\n";
+        String header = "Time,Process,Result\n";
         StringBuilder contentBuilder = new StringBuilder(header);
         for (GUIImportResult[] importResult : importResults) {
             String importResultString = generateImportResultString(importResult);
@@ -84,9 +84,9 @@ public class CSVGenerator {
         }
         // timestamp, fileName, errorMessage
         entryBuilder.append(timestamp);
-        entryBuilder.append(",\t");
+        entryBuilder.append(",");
         entryBuilder.append(fileName);
-        entryBuilder.append(",\t");
+        entryBuilder.append(",");
         entryBuilder.append(errorMessage);
         entryBuilder.append("\n");
 

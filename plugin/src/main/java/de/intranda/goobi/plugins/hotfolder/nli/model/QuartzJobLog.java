@@ -63,12 +63,12 @@ public class QuartzJobLog {
     }
 
     private String generateQuartzErrorsContent() {
-        StringBuilder sb = new StringBuilder("TIME,\tERROR\n");
+        StringBuilder sb = new StringBuilder("TIME,ERROR\n");
         for (Entry<LocalDateTime, String> entry : quartzErrorsMap.entrySet()) {
             String time = entry.getKey().format(formatter);
             String error = entry.getValue();
             sb.append(time);
-            sb.append(",\t");
+            sb.append(",");
             sb.append(error);
             sb.append("\n");
         }
@@ -109,12 +109,12 @@ public class QuartzJobLog {
     }
 
     private String generatePeriodsContent() {
-        StringBuilder sb = new StringBuilder("PERIOD_START,\tPERIOD_END\n");
+        StringBuilder sb = new StringBuilder("PERIOD_START,PERIOD_END\n");
         for (Entry<LocalDateTime, LocalDateTime> entry : periodsMap.entrySet()) {
             String start = entry.getKey().format(formatter);
             String end = entry.getValue().format(formatter);
             sb.append(start);
-            sb.append(",\t");
+            sb.append(",");
             sb.append(end);
             sb.append("\n");
         }
