@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.CSVGenerator;
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
+import de.intranda.goobi.plugins.hotfolder.nli.model.QuartzJobLog;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
@@ -130,10 +131,13 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     }
 
     public Map<String, List<GUIImportResult>> getLastRunInfo() throws JsonParseException, JsonMappingException, IOException {
+        // comment out the following if block for a quick test via "regular tasks"
         if (numberUpdated || lastRunInfoLoadTime == null || Instant.now().minus(Duration.ofSeconds(30)).isAfter(lastRunInfoLoadTime)) {
             loadLastRunInfo();
             numberUpdated = false;
         }
+
+        //        loadLastRunInfo(); // use this line instead if a quick test via "regular tasks" is needed // NOSONAR
 
         return this.lastRunInfo;
     }
@@ -211,6 +215,22 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         generator.generateFile();
         // download the generated csv file
         downloadFile(generator.getCsvFilePath());
+    }
+
+    public void generateQuartzErrorsLog() {
+        QuartzJobLog logger = QuartzJobLog.getInstance(hotfolderPath);
+        // generate the quartz error log file
+        logger.generateQuartzErrorsLogFile();
+        // download the file
+        downloadFile(logger.getErrorsFilePath());
+    }
+
+    public void generateNoFilePeriodsLog() {
+        QuartzJobLog logger = QuartzJobLog.getInstance(hotfolderPath);
+        // generate the no file periods log file
+        logger.generatePeriodsLogFile();
+        // download the file
+        downloadFile(logger.getPeriodsFilePath());
     }
 
     private void downloadFile(Path filePath) {

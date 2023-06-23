@@ -86,6 +86,7 @@
                                                         value="#{msgs.plugin_administration_nli_hotfolder_importing}" />
                                                 </td>
                                             </tr>
+                                            <!--  GENERATE A CSV FILE CONTAINING ALL GUI RESULTS -->
                                             <tr>
                                                 <td>
                                                     <h:outputText value="#{msgs.generateCSV}: "/>
@@ -95,6 +96,32 @@
                                                         value="#{msgs.generateCSV}"
                                                         jsf:action="#{AdministrationForm.administrationPlugin.generateCSV}" >
                                                         <i class="fa fa-download"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <!-- GENERATE A CSV FILE CONTAINING ALL QUARTZ ERRORS -->
+                                             <tr>
+                                                <td>
+                                                    <h:outputText value="#{msgs.generateQuartzErrorsLog}: "/>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        value="#{msgs.generateQuartzErrorsLog}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateQuartzErrorsLog}" >
+                                                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <!-- GENERATE A CSV FILE CONTANING ALL PERIODS WHERE THERE IS NO FILE TO UPLOAD -->
+                                             <tr>
+                                                <td>
+                                                    <h:outputText value="#{msgs.generateNoFilePeriodsLog}: "/>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        value="#{msgs.generateNoFilePeriodsLog}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateNoFilePeriodsLog}" >
+                                                        <i class="fa fa-file-o" aria-hidden="true"></i>
                                                     </button>
                                                 </td>
                                             </tr>

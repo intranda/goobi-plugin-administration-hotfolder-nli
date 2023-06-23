@@ -35,6 +35,7 @@ import com.google.gson.Gson;
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
+import de.intranda.goobi.plugins.hotfolder.nli.model.QuartzJobLog;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.HelperSchritte;
@@ -71,6 +72,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     private boolean useTimeDifference;
 
     private String ownerType;
+
+    // only used to test QuartzJobLog
+    private static int counter = 0;
 
     @Override
     public String getJobName() {
@@ -116,6 +120,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             return;
         }
 
+        // prepare QuartzJobLog instance for recording QuartzJob errors and periods where there is no file to upload
+        QuartzJobLog quartzJobLog = QuartzJobLog.getInstance(hotfolderPath);
+
         try {
             // set lock
             storageProvider.createFile(lockFile);
@@ -131,17 +138,39 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
+            // uncomment the following block to test QuartzJobLog 
+            //            if (counter < 7) { // NOSONAR
+            //                ++counter;
+            //                // test no file periods
+            //                guiResults = new ArrayList<>();
+            //                // test quartz errors log
+            //                if (counter % 3 == 0) {
+            //                    throw new Exception("Exception for testing QuartzJobLog.");
+            //                } else if (counter % 3 == 1) {
+            //                    throw new Throwable("Throwable for testing QuartzJobLog.");
+            //                }
+            //            }
+
             if (guiResults.size() > 0) {
+                // ending an existing period where no file is to upload, no harm if no period has been started yet
+                quartzJobLog.markPeriodEnd();
+
                 int numberSetting = useTimeDifference ? allowedTimeDifference : allowedNumberOfLogs;
                 updateRunsLog(hotfolderPath, guiResults, numberSetting);
             } else {
+                // starting a new period where no file is to upload, no harm if the period has already been started earlier
+                quartzJobLog.markPeriodStart();
                 log.debug("guiResults is empty, skipping...");
             }
 
         } catch (Exception e) {
             log.error("Error running NLI hotfolder: {}", e);
+            // record the exception
+            quartzJobLog.addErrorEntry(e.getMessage());
         } catch (Throwable e) {
             log.error("Unexpected error running NLI hotfolder: {}", e);
+            // record the unexpected error
+            quartzJobLog.addErrorEntry(e.getMessage());
         } finally {
             log.info("NLI hotfolder: Done with import run. Deleting lockFile");
             try {
@@ -150,6 +179,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 }
             } catch (IOException e) {
                 log.error("Error deleting NLI hotfolder lock file: {}", e);
+                // record the IOException
+                quartzJobLog.addErrorEntry("Error deleting NLI hotfolder lock file: " + e.getMessage());
             }
         }
     }
@@ -304,7 +335,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             log.error("Error trying to update the log file: {}", e);
             return;
         }
-        log.debug("reducedLastResult = " + reducedLastResult);
 
         // TODO: How to use StorageProviderInterface to replace Files in the following case?
         try (OutputStream out = Files.newOutputStream(resultsJsonPath, StandardOpenOption.TRUNCATE_EXISTING,
@@ -505,7 +535,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
         // otherwise, only the first allowedNumberOfLogs - 1 logs from lastResults will be kept
         lastResults = ",\n" + lastResults.substring(1);
-        log.debug("lastResults = " + lastResults);
 
         // use StringBuilder and count the number of [
         StringBuilder sb = new StringBuilder();
