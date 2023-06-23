@@ -233,6 +233,11 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         downloadFile(logger.getPeriodsFilePath());
     }
 
+    public void resetQuartzJobLogRecords() {
+        QuartzJobLog logger = QuartzJobLog.getInstance(hotfolderPath);
+        logger.deleteAllRecords();
+    }
+
     private void downloadFile(Path filePath) {
         // prepare FacesContext
         FacesContext facesContext = FacesContext.getCurrentInstance();

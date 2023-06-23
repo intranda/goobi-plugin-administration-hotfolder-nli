@@ -125,6 +125,19 @@
                                                     </button>
                                                 </td>
                                             </tr>
+                                            <!-- DELETE ALL QUARTZ JOB LOG RECORDS -->
+                                            <tr>
+                                                <td>
+                                                    <h:outputText value="#{msgs.resetQuartzJobLogRecords}: "/>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        value="#{msgs.resetQuartzJobLogRecords}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.resetQuartzJobLogRecords}" >
+                                                        <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
         
                                             <!-- ADDITIONAL ROWS FOR IMPORTING MODE -->
                                             <ui:fragment

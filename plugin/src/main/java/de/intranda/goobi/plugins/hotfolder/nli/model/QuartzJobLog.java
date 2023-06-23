@@ -7,12 +7,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import de.sub.goobi.helper.StorageProvider;
-import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -20,14 +19,12 @@ import lombok.extern.log4j.Log4j2;
 public class QuartzJobLog {
     private static QuartzJobLog logInstance;
     private static final DateTimeFormatter formatter = GUIImportResult.getFormatter();
-    private static final StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
-    private static final String NO_FILE_TO_UPLOAD = "No file to upload during this time.";
     private static final String NO_FILES_PERIOD_LOG_FILE = "noFilesPeriods.csv";
     private static final String QUARTZ_ERROR_LOG_FILE = "quartzErrorLog.csv";
 
-    private Map<LocalDateTime, String> quartzErrorsMap = new TreeMap<>();
-    private Map<LocalDateTime, LocalDateTime> periodsMap = new TreeMap<>();
+    private Map<LocalDateTime, String> quartzErrorsMap;
+    private Map<LocalDateTime, LocalDateTime> periodsMap;
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
     private Path hotfolderPath;
@@ -41,6 +38,8 @@ public class QuartzJobLog {
         this.hotfolderPath = hotfolderPath;
         this.errorsFilePath = this.hotfolderPath.resolve(QUARTZ_ERROR_LOG_FILE);
         this.periodsFilePath = this.hotfolderPath.resolve(NO_FILES_PERIOD_LOG_FILE);
+        initializeQuartzErrorsMap();
+        initializePeriodsMap();
     }
 
     public static QuartzJobLog getInstance(Path hotfolderPath) {
@@ -136,9 +135,17 @@ public class QuartzJobLog {
         }
     }
 
+    private void initializeQuartzErrorsMap() {
+        quartzErrorsMap = new TreeMap<>(Collections.reverseOrder());
+    }
+
+    private void initializePeriodsMap() {
+        periodsMap = new TreeMap<>(Collections.reverseOrder());
+    }
+
     public void deleteAllRecords() {
-        quartzErrorsMap = new TreeMap<>();
-        periodsMap = new TreeMap<>();
+        initializeQuartzErrorsMap();
+        initializePeriodsMap();
     }
 
 }
