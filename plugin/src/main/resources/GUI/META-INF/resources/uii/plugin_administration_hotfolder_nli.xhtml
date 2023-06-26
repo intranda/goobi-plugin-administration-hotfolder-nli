@@ -89,12 +89,12 @@
                                             <!--  GENERATE A CSV FILE CONTAINING ALL GUI RESULTS -->
                                             <tr>
                                                 <td>
-                                                    <h:outputText value="#{msgs.generateCSV}: "/>
+                                                    <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_generateCSV}: "/>
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.generateCSV}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateCSV}" >
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateCSV}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.plugin_administration_nli_hotfolder_generateCSV}" >
                                                         <i class="fa fa-download"></i>
                                                     </button>
                                                 </td>
@@ -102,12 +102,12 @@
                                             <!-- GENERATE A CSV FILE CONTAINING ALL QUARTZ ERRORS -->
                                              <tr>
                                                 <td>
-                                                    <h:outputText value="#{msgs.generateQuartzErrorsLog}: "/>
+                                                    <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_generateQuartzErrorsLog}: "/>
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.generateQuartzErrorsLog}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateQuartzErrorsLog}" >
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateQuartzErrorsLog}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.plugin_administration_nli_hotfolder_generateQuartzErrorsLog}" >
                                                         <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
                                                     </button>
                                                 </td>
@@ -115,12 +115,12 @@
                                             <!-- GENERATE A CSV FILE CONTANING ALL PERIODS WHERE THERE IS NO FILE TO UPLOAD -->
                                              <tr>
                                                 <td>
-                                                    <h:outputText value="#{msgs.generateNoFilePeriodsLog}: "/>
+                                                    <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_generateNoFilePeriodsLog}: "/>
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.generateNoFilePeriodsLog}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateNoFilePeriodsLog}" >
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateNoFilePeriodsLog}"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.plugin_administration_nli_hotfolder_generateNoFilePeriodsLog}" >
                                                         <i class="fa fa-file-o" aria-hidden="true"></i>
                                                     </button>
                                                 </td>
@@ -128,13 +128,13 @@
                                             <!-- DELETE ALL QUARTZ JOB LOG RECORDS -->
                                             <tr>
                                                 <td>
-                                                    <h:outputText value="#{msgs.resetQuartzJobLogRecords}: "/>
+                                                    <h:outputText value="#{msgs.plugin_administration_nli_hotfolder_resetQuartzJobLogRecords}: "/>
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.resetQuartzJobLogRecords}"
+                                                        value="#{msgs.plugin_administration_nli_hotfolder_resetQuartzJobLogRecords}"
                                                         onclick="if (! confirm('Really want to do that?')) return false"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.resetQuartzJobLogRecords}" >
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.plugin_administration_nli_hotfolder_resetQuartzJobLogRecords}" >
                                                         <i class="fa fa-trash-o" aria-hidden="true"></i>
                                                     </button>
                                                 </td>
