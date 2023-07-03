@@ -45,6 +45,7 @@ import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.EmptyFolderImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
@@ -345,15 +346,21 @@ public class NLIExcelImport {
      * @param rowMap map between the row number as an integer and the row as a string
      * @return true if the image source folder is successfully imported, false otherwise
      * @throws IOException
+     * @throws EmptyFolderImportException
      */
     private boolean importImageSourceFolder(ImportObject io, HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
-            throws IOException {
+            throws IOException, EmptyFolderImportException {
         Path imageSourceFolder = null;
         try {
             imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
             io.setImportFileName(imageSourceFolder.toString());
             checkImageSourceFolder(imageSourceFolder);
             return true;
+        } catch (EmptyFolderImportException ee) {
+            log.debug("Cannot import " + imageSourceFolder + ": " + ee.getMessage());
+            log.debug("Deleting empty folder: " + imageSourceFolder);
+            storageProvider.deleteDir(imageSourceFolder);
+            return false;
         } catch (ImportException e) {
             log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
             return false;
@@ -380,13 +387,14 @@ public class NLIExcelImport {
         if (lastModifiedInstant.isAfter(Instant.now().minus(blockTimeoutDuration))) {
             // comment out the following line or configure the <sourceImageFolderMofidicationBlockTimout> block to allow a fast test
             throw new ImportException("Image folder has been modified in the last " + minutes + " minutes");
+            //            log.debug("Image folder has been modified in the last " + minutes + " minutes");
         }
 
         // TODO: How to use StorageProviderInterface to replace Files in the following cases?
         try (Stream<Path> fileStream = Files.list(imageSourceFolder)) {
             List<Path> allFiles = fileStream.collect(Collectors.toList());
             if (allFiles.stream().filter(p -> Files.isRegularFile(p)).findAny().isEmpty()) {
-                throw new ImportException("Image folder does not contain any regular files");
+                throw new EmptyFolderImportException("Image folder does not contain any regular files");
             }
             if (!allFiles.stream().allMatch(p -> Files.isRegularFile(p))) {
                 throw new ImportException("Image folder contains folders or symlinks");
