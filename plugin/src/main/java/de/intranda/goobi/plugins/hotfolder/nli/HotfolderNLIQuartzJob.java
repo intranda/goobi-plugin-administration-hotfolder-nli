@@ -447,15 +447,19 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
         String processTitle = process.getTitel();
         for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
-            String folderName = entry.getKey().getFileName().toString();
+            Path folderPath = entry.getKey();
+            String folderName = folderPath.getFileName().toString();
             if (processTitle.endsWith(folderName)) {
                 String ownerName = entry.getValue();
                 log.debug("ownerName = " + ownerName);
+                // delete the owner file
+                hff.deleteOwnerFile(folderPath);
                 return ownerName;
             }
         }
 
         // not found
+        log.debug("ownerName not set");
         return "";
     }
 
@@ -497,7 +501,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
 
         } catch (MetadataTypeNotAllowedException e) {
-            String message = "The configured ownerType " + ownerType + " is not allowed.";
+            String message = "The configured ownerType " + ownerType + " is not allowed for this publicationType.";
             Helper.addMessageToProcessJournal(process.getId(), LogType.ERROR, message);
 
         } catch (WriteException e) {

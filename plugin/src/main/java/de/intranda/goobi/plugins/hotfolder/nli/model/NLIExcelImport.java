@@ -92,6 +92,8 @@ public class NLIExcelImport {
 
     private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
 
+    private static final String OWNER_FILE_EXTENSION = HotfolderFolder.getOwnerFileExtension();
+
     private List<ImportType> importTypes;
     private String workflowTitle;
 
@@ -903,11 +905,18 @@ public class NLIExcelImport {
         for (Path currentData : dataInSourceImageFolder) {
             String fileName = currentData.getFileName().toString();
 
+            if (fileName.endsWith(OWNER_FILE_EXTENSION)) {
+                // just ignore the owner file
+                continue;
+            }
+
             if (storageProvider.isDirectory(currentData)) {
                 Path targetDir = Paths.get(copyToDirectory).resolve(currentData.getFileName());
                 storageProvider.createDirectories(targetDir);
                 storageProvider.copyDirectory(currentData, targetDir);
+
             } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(ALLOWED_FILE_SUFFIX_PATTERN)) {
+                // valid files
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
                     String number = String.format("%04d", iNumber);
@@ -915,6 +924,7 @@ public class NLIExcelImport {
                 }
                 iNumber++;
                 storageProvider.copyFile(currentData, Paths.get(copyToDirectory, newFilename));
+
             } else { // if files do not have allowed suffices, then try to report this instead of making empty processes
                 String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
                 log.debug("The file named '{}' has an invalid suffix: {} ", fileName, suffix);
