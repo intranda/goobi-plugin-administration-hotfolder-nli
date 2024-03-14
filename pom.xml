@@ -7,7 +7,7 @@
     <relativePath />
   </parent>
   <groupId>io.goobi.workflow.plugin</groupId>
-  <artifactId>plugin-administration-hotfolder_nli</artifactId>
+  <artifactId>plugin-administration-hotfolder-nli</artifactId>
   <packaging>pom</packaging>
   <modules>
     <module>module-base</module>
