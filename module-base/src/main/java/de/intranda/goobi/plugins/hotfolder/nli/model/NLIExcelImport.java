@@ -90,8 +90,6 @@ public class NLIExcelImport {
     private static String title = "intranda_administration_hotfolder_nli";
     private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
 
-    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
-
     private static final String OWNER_FILE_EXTENSION = HotfolderFolder.getOwnerFileExtension();
 
     private List<ImportType> importTypes;
@@ -119,7 +117,7 @@ public class NLIExcelImport {
             this.workflowTitle = hff.getTemplateName();
         }
     }
-    
+
     public NLIExcelImport(HotfolderFolder hff, NLIExcelConfig config) {
         this(hff);
         this.config = config;
@@ -915,7 +913,7 @@ public class NLIExcelImport {
                 storageProvider.createDirectories(targetDir);
                 storageProvider.copyDirectory(currentData, targetDir);
 
-            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(ALLOWED_FILE_SUFFIX_PATTERN)) {
+            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(config.getAllowedFilenamePattern())) {
                 // valid files
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
@@ -985,7 +983,7 @@ public class NLIExcelImport {
         } else {
             storageProvider.copyFile(file, destination);
         }
-            //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
+        //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
 
     }
 
