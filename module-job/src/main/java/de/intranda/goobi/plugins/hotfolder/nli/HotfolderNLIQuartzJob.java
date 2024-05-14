@@ -65,7 +65,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
 
-    private HotfolderOwnerManager hotfolderOwners;
+    private HotfolderOwnerManager hotfolderOwners = new HotfolderOwnerManager();
 
     private boolean useTimeDifference;
 
