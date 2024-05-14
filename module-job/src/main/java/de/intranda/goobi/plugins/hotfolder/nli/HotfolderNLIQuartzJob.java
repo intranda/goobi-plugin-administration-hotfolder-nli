@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
@@ -34,6 +32,7 @@ import com.google.gson.Gson;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
 import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderFolder;
+import de.intranda.goobi.plugins.hotfolder.nli.model.HotfolderOwnerManager;
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIExcelImport;
 import de.intranda.goobi.plugins.hotfolder.nli.model.QuartzJobLog;
 import de.sub.goobi.config.ConfigPlugins;
@@ -66,8 +65,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     //Why is this a global property? Should it not be recreated for each HotfolderFolder?
     private NLIExcelImport excelImport = null;
 
-    // map that hold maps between folder paths and owner names
-    private Map<HotfolderFolder, Map<Path, String>> folderOwnerMaps = new HashMap<>();
+    private HotfolderOwnerManager hotfolderOwners;
 
     private boolean useTimeDifference;
 
@@ -186,13 +184,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     /**
-     * returns true for the following cases: 
-     * 1). 0 < startTime <= currentHour < endTime 
-     * 2). 0 < endTime <= startTime <= currentHour 
-     * 3). 0 < currentHour < endTime <= startTime 
-     * 4). endTime <= 0 < startTime <= currentHour 
-     * 5). startTime <= 0 < currentHour < endTime 
-     * 6). startTime <= 0 && endTime <= 0
+     * returns true for the following cases: 1). 0 < startTime <= currentHour < endTime 2). 0 < endTime <= startTime <= currentHour 3). 0 <
+     * currentHour < endTime <= startTime 4). endTime <= 0 < startTime <= currentHour 5). startTime <= 0 < currentHour < endTime 6). startTime <= 0 &&
+     * endTime <= 0
      * 
      * @param currentHour
      * @param startTime
@@ -281,7 +275,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         List<ImportObject> imports = new ArrayList<>();
         for (HotfolderFolder hff : importFolders) {
             // get owner info and write it into log
-            updateFolderOwnerMaps(hff);
+            hotfolderOwners.updateFolderOwnerMaps(hff);
 
             try {
                 File importFile = hff.getImportFile();
@@ -350,13 +344,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         }
     }
 
-    private void updateFolderOwnerMaps(HotfolderFolder hff) {
-        // get owner info of the folder
-        Map<Path, String> folderOwnerMap = hff.getFolderOwnerMap();
-        // store the info
-        folderOwnerMaps.put(hff, folderOwnerMap);
-    }
-
     private List<Record> getAllRecords(List<ImportObject> imports, File importFile) {
         List<Record> records;
         try {
@@ -386,7 +373,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
     }
 
     private ImportObject prepareImportObject(String importFilePath, int lineNumber, Record record, HotfolderFolder hff) {
-        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff);
+        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff, hotfolderOwners);
         if (io == null) {
             return null;
         }
@@ -400,7 +387,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
                 // log owner name into process journal and metadata
                 logOwnerName(hff, processNew);
-
+                hotfolderOwners.deleteOwnerFile(hff, processNew.getTitel());
                 //close first step
                 HelperSchritte hs = new HelperSchritte();
                 Step firstOpenStep = processNew.getFirstOpenStep();
@@ -410,6 +397,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 if (excelImport.shouldDeleteSourceFiles()) {
                     excelImport.deleteSourceFiles(hff, record);
                 }
+
             } else { // processNew == null || processNewId == null
                 io.setErrorMessage("Process " + io.getProcessTitle() + " already exists. Aborting import");
                 io.setImportReturnValue(ImportReturnValue.NoData);
@@ -428,10 +416,17 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         return io;
     }
 
-    private void logOwnerName(HotfolderFolder hff, org.goobi.beans.Process process) {
-        String ownerName = getOwnerName(hff, process);
+    /**
+     * Write the owner name taken from the file with .owner extension to process journal and metadata of process
+     * 
+     * @param hff
+     * @param process
+     * @return false if no owner file exists
+     */
+    private boolean logOwnerName(HotfolderFolder hff, org.goobi.beans.Process process) {
+        String ownerName = hotfolderOwners.getOwnerName(hff, process.getTitel());
         if (StringUtils.isBlank(ownerName)) {
-            return;
+            return false;
         }
 
         // ownerName is not blank, log it
@@ -441,26 +436,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         if (StringUtils.isNotBlank(ownerType)) {
             logOwnerNameIntoMetadata(process, ownerName);
         }
-    }
-
-    private String getOwnerName(HotfolderFolder hff, org.goobi.beans.Process process) {
-        Map<Path, String> folderOwnerMap = folderOwnerMaps.get(hff);
-        String processTitle = process.getTitel();
-        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
-            Path folderPath = entry.getKey();
-            String folderName = folderPath.getFileName().toString();
-            if (processTitle.endsWith(folderName)) {
-                String ownerName = entry.getValue();
-                log.debug("ownerName = " + ownerName);
-                // delete the owner file
-                hff.deleteOwnerFile(folderPath);
-                return ownerName;
-            }
-        }
-
-        // not found
-        log.debug("ownerName not set");
-        return "";
+        return true;
     }
 
     private void logOwnerNameIntoProcessJournal(org.goobi.beans.Process process, String ownerName) {
