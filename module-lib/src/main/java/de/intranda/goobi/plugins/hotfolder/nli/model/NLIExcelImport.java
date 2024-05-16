@@ -23,9 +23,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
-import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
-import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.input.BOMInputStream;
@@ -45,11 +42,13 @@ import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.MetadataMappingObject;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.EmptyFolderImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
-import de.sub.goobi.config.ConfigPlugins;
+import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.sub.goobi.config.ConfigurationHelper;
-import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
@@ -72,10 +71,8 @@ import ugh.fileformats.mets.MetsMods;
 
 @Log4j2
 @Data
-//@PluginImplementation
 public class NLIExcelImport {
 
-    private Prefs prefs;
     private String importFolder;
     private String data;
     private String currentIdentifier;
@@ -87,52 +84,38 @@ public class NLIExcelImport {
     private boolean replaceExisting = false;
     private boolean moveFiles = false;
 
-    private static String title = "intranda_administration_hotfolder_nli";
-    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
-
     private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
 
     private static final String OWNER_FILE_EXTENSION = HotfolderFolder.getOwnerFileExtension();
 
     private List<ImportType> importTypes;
-    private String workflowTitle;
 
-    private NLIExcelConfig config;
     private Process template;
+    private final HotfolderPluginConfig pluginConfig;
+    private final StorageProviderInterface storageProvider;
 
     // set of folders that contain files of invalid suffices
     private HashSet<Path> dirtyFolderSet = new HashSet<>();
     // set of files that are of invalid suffices
     private HashSet<Path> invalidFileSet = new HashSet<>();
 
-    public NLIExcelImport(HotfolderFolder hff) {
-
+    public NLIExcelImport(HotfolderPluginConfig pluginConfig, StorageProviderInterface storageProvider, String importFolder) {
+        this.storageProvider = storageProvider;
+        this.pluginConfig = pluginConfig;
         // by default /opt/digiverso/goobi/tmp/
-        importFolder = ConfigurationHelper.getInstance().getTemporaryFolder();
+        this.importFolder = importFolder;
         // prepare import folder if not available yet
         prepareImportFolder(importFolder);
 
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.FILE);
-
-        if (hff != null) {
-            this.workflowTitle = hff.getTemplateName();
-        }
-    }
-
-    public NLIExcelImport(HotfolderFolder hff, NLIExcelConfig config) {
-        this(hff);
-        this.config = config;
     }
 
     @SuppressWarnings("unchecked")
-    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff, HotfolderOwnerManager hotfolderOwners) {
-        // reset the template if necessary:
-        if (!hff.getTemplateName().equals(workflowTitle)) {
-            workflowTitle = hff.getTemplateName();
-            config = null;
-            getConfig();
-        }
+    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff, Prefs prefs) {
+
+        String workflowTitle = hff.getTemplateName();
+        NLIExcelConfig config = loadConfig(workflowTitle);
 
         ImportObject io = new ImportObject();
         io.setImportFileName(sourceFile + ":" + rowNumber);
@@ -152,8 +135,7 @@ public class NLIExcelImport {
             // name the process:
             currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
             String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
-
-            if (StringUtils.isBlank(hotfolderOwners.getOwnerName(hff, processName))) {
+            if (StringUtils.isBlank(hff.getOwnerName(processName))) {
                 log.debug("No owner file found for process {}", processName);
                 io.setErrorMessage("No owner file found for process " + processName);
                 io.setImportReturnValue(ImportReturnValue.InvalidData);
@@ -268,7 +250,6 @@ public class NLIExcelImport {
     //    @Override
     public List<Record> generateRecordsFromFile(File file) throws IOException {
 
-        config = null;
         List<Record> recordList = new ArrayList<>();
         String idColumn = getConfig().getIdentifierHeaderName();
         Map<String, Integer> headerOrder = new HashMap<>();
@@ -328,21 +309,6 @@ public class NLIExcelImport {
     //        //this is a random number, to prevent lombok from calling getConfig every time it wants a hash.
     //        return 4589689;
     //    }
-
-    public NLIExcelConfig getConfig() {
-        if (config == null) {
-            config = loadConfig(workflowTitle);
-            template = ProcessManager.getProcessByTitle(workflowTitle);
-            if (template == null) {
-                throw new IllegalStateException("Error getting config for template '" + workflowTitle + "'. No such process found");
-            } else if (template.getRegelsatz() == null) {
-                throw new IllegalStateException("No ruleset found for template " + template.getTitel());
-            }
-            prefs = template.getRegelsatz().getPreferences();
-        }
-
-        return config;
-    }
 
     // ======= private methods ======= //
 
@@ -1107,7 +1073,7 @@ public class NLIExcelImport {
         //            e1.printStackTrace();
         //        }
 
-        SubnodeConfiguration myconfig = getTemplateConfig(workflowTitle);
+        SubnodeConfiguration myconfig = pluginConfig.getTemplateConfig(workflowTitle);
 
         if (myconfig != null) {
             replaceExisting = myconfig.getBoolean("replaceExistingProcesses", false);
@@ -1115,27 +1081,6 @@ public class NLIExcelImport {
         }
 
         return new NLIExcelConfig(myconfig);
-    }
-
-    /**
-     * 
-     * @param workflowTitle
-     * @return
-     */
-    public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
-        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
-
-        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
-        xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-
-        SubnodeConfiguration myconfig = null;
-        try {
-            myconfig = xmlConfig.configurationAt("//config[./template = '" + workflowTitle + "']");
-        } catch (IllegalArgumentException e) {
-            myconfig = xmlConfig.configurationAt("//config[./template = '*']");
-        }
-
-        return myconfig;
     }
 
 }

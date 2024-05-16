@@ -1,0 +1,175 @@
+<config_plugin>
+    <!-- hotfolder -->
+    <hotfolderPath>/opt/digiverso/goobi/other/hotfolder</hotfolderPath>
+   
+    <!-- if true then allowedTimeDifference will be used, otherwise allowedNumberOfLogs will be used -->
+    <useTimeDifference>false</useTimeDifference>
+    <!-- maximum number of hours that an entry of run info should be maintained in the log, DEFAULT 1 -->
+    <allowedTimeDifference>24</allowedTimeDifference>
+    <!-- maximum number of runs whose run info should be saved into the log, DEFAULT 1 -->
+    <allowedNumberOfLogs>288</allowedNumberOfLogs>
+    <!-- MetadataType that should be used for saving the owner's name, and it should be an allowed PERSON type for the configured publicationType. -->
+    <!-- If left blank or incorrectly configured then no Metadata will be created to hold the owner's name. -->
+ 	<!-- owner was"Creator" before "Person". -->
+    <ownerType>Photographer</ownerType>
+
+    <config>
+        <!-- Use this config for the following workflow template: -->
+        <!-- <template>Archive_ingest_only</template> -->
+        <template>Archive_ingest_only_Departments_TIF</template>
+      	<template>Archive_ingest_only_Departments_PDF</template>
+      	<template>Archive_ingest_only_Departments_PDF_and_TIF</template>
+      	<!-- <template>Audio_and_Video</template>-->
+        <!-- <template>DailyPress</template> -->
+        <!-- publication type to create -->
+        <publicationType>Manuscript</publicationType>
+        <!-- which digital collection to use -->
+        <collection>NLI</collection>
+        <!-- define if a catalogue shall get requested to import metadata -->
+        <useOpac>true</useOpac>
+        <!-- which catalogue to use (as default) -->
+        <opacName>NLI Alma</opacName>
+        <!-- which catalogue to use per record; if missing the default will be used -->
+        <opacHeader>Identifier</opacHeader>
+
+		<schedule>
+        	<start>19</start> <!-- local time in hours -->
+        	<end>7</end>	  <!-- local time in hours -->
+    	</schedule>
+
+	<!--time in minutes during which a source folder within the hotfolder may not have been modified for an ingest to proceed-->
+	<sourceImageFolderMofidicationBlockTimeout>30</sourceImageFolderMofidicationBlockTimeout>
+      
+    <!--Only import media files matching this pattern. Default is '.*\.(tiff?|pdf|epub)'-->
+	<allowedFilenames>.*\.(tiff?|pdf|epub|mov|wav)</allowedFilenames>
+        
+	<searchField>12</searchField>
+        <!-- define in which row the header is written, usually 1 -->
+        <rowHeader>1</rowHeader>
+        <!-- define in which row the data starts, usually 2 -->
+        <rowDataStart>2</rowDataStart>
+        <!-- define in which row the data ends, usually 20000 -->
+        <rowDataEnd>40000</rowDataEnd>
+        <!-- define which column is the one to use for catalogue requests -->
+        <identifierHeaderName>Identifier</identifierHeaderName>
+        <!-- define which column is the one to use for naming the process -->
+        <processHeaderName>Process title</processHeaderName>
+        <!-- define which column is the one to use for naming the image files -->
+        <imagesHeaderName>dcterms:IE_Title</imagesHeaderName>
+        
+        <!-- If false, do not delete the import image folder after import. -->
+        <moveImages>true</moveImages>
+        
+        <!-- Overwrite any existing processes -->
+        <replaceExistingProcesses>false</replaceExistingProcesses>
+        <!-- define here which columns shall be mapped to which ugh metadata
+            ugh: name of the metadata to use. if it is empty or missing, no metadata is generated
+            headerName: title inside of the header column
+            property: name of the process property. if it is empty or missing, no process property gets generated
+            normdataHeaderName: title of the header column to use for a gnd authority identifier
+            docType: define if the metadata should be added to the anchor or child element. Gets ignored, when the
+            record is no multivolume. Default is 'child', valid values are 'child' and 'anchor'
+        -->
+        <metadata
+            ugh="CatalogIDDigital"
+            headerName="Identifier"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedA"
+            headerName="UserDefinedA"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedB"
+            headerName="UserDefinedB"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedC"
+            headerName="UserDefinedC"
+            mandatory="false" />
+        <metadata
+            ugh="TitleDocMain"
+            headerName="dc:Title"
+            mandatory="false" />
+        <metadata
+            ugh="HostItemTitle"
+            headerName="dcterms:isPartOf"
+            mandatory="false" />
+    </config>
+  
+    <config>
+        <!-- Use this config for the following workflow template: -->
+        <template>*</template>
+        <!-- publication type to create -->
+        <publicationType>Manuscript</publicationType>
+        <!-- which digital collection to use -->
+        <collection>NLI</collection>
+        <!-- define if a catalogue shall get requested to import metadata -->
+        <useOpac>true</useOpac>
+        <!-- which catalogue to use (as default) -->
+        <opacName>NLI Alma</opacName>
+        <!-- which catalogue to use per record; if missing the default will be used -->
+        <opacHeader>Identifier</opacHeader>
+
+	<!--time in minutes during which a source folder within the hotfolder may not have been modified for an ingest to proceed-->
+	<sourceImageFolderMofidicationBlockTimout>30</sourceImageFolderMofidicationBlockTimout>        
+       
+	<!--Only import media files matching this pattern. Default is '.*\.(tiff?|pdf|epub)'-->
+	<allowedFilenames>.*\.(tiff?|pdf|epub|mov|wav)</allowedFilenames>	
+ 
+	<searchField>12</searchField>
+        <!-- define in which row the header is written, usually 1 -->
+        <rowHeader>1</rowHeader>
+        <!-- define in which row the data starts, usually 2 -->
+        <rowDataStart>2</rowDataStart>
+        <!-- define in which row the data ends, usually 20000 -->
+        <rowDataEnd>40000</rowDataEnd>
+        <!-- define which column is the one to use for catalogue requests -->
+        <identifierHeaderName>Identifier</identifierHeaderName>
+        <!-- define which column is the one to use for naming the process -->
+        <processHeaderName>Process title</processHeaderName>
+        <!-- define which column is the one to use for naming the image files -->
+        <imagesHeaderName>dcterms:IE_Title</imagesHeaderName>
+        
+        <!-- If false, do not delete the import image folder after import. -->
+        <moveImages>true</moveImages>
+        
+        <!-- Overwrite any existing processes -->
+        <replaceExistingProcesses>false</replaceExistingProcesses>
+        <!-- define here which columns shall be mapped to which ugh metadata
+            ugh: name of the metadata to use. if it is empty or missing, no metadata is generated
+            headerName: title inside of the header column
+            property: name of the process property. if it is empty or missing, no process property gets generated
+            normdataHeaderName: title of the header column to use for a gnd authority identifier
+            docType: define if the metadata should be added to the anchor or child element. Gets ignored, when the
+            record is no multivolume. Default is 'child', valid values are 'child' and 'anchor'
+        -->
+        <metadata
+            ugh="CatalogIDDigital"
+            headerName="Identifier"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedA"
+            headerName="UserDefinedA"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedB"
+            headerName="UserDefinedB"
+            mandatory="true" />
+        <metadata
+            ugh="UserDefinedC"
+            headerName="UserDefinedC"
+            mandatory="false" />
+        <metadata
+            ugh="TitleDocMain"
+            headerName="dc:Title"
+            mandatory="false" />
+        <metadata
+            ugh="HostItemTitle"
+            headerName="dcterms:isPartOf"
+            mandatory="false" />
+        <metadata
+            ugh="_imageFilePrefix"
+            headerName="dcterms:IE_Title"
+            mandatory="false" />
+    </config>
+</config_plugin>

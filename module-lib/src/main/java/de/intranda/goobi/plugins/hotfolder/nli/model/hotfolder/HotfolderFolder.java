@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.hotfolder.nli.model;
+package de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,14 +12,14 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
-import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 public class HotfolderFolder {
-    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
+
+    private final StorageProviderInterface storageProvider;
 
     @Getter
     private Path projectFolder;
@@ -43,10 +43,11 @@ public class HotfolderFolder {
      * @param projectFolder
      * @param templateName
      */
-    public HotfolderFolder(Path projectFolder, String templateName) {
+    public HotfolderFolder(Path projectFolder, String templateName, StorageProviderInterface storageProvider) {
         this.projectFolder = projectFolder;
         this.templateName = templateName;
         this.projectFoldersFileList = storageProvider.listFiles(this.projectFolder.toString());
+        this.storageProvider = storageProvider;
 
         getImportFolders();
     }
@@ -56,7 +57,7 @@ public class HotfolderFolder {
      */
     private void getImportFolders() {
         lstProcessFolders = new ArrayList<>();
-        
+
         for (Path barcodePath : projectFoldersFileList) {
             if (storageProvider.isDirectory(barcodePath)) {
                 // remove the Thumbs.db file
@@ -196,6 +197,48 @@ public class HotfolderFolder {
                 log.error("failed to delete the " + OWNER_FILE_EXTENSION + " file in " + folderPath);
             }
         }
+    }
+
+    /**
+     * Delete the file with the extension '.owner' in the process path which name ends with the given 'processTitle'
+     * 
+     * @param processTitle
+     * @return
+     */
+    public boolean deleteOwnerFile(String processTitle) {
+        Map<Path, String> folderOwnerMap = getFolderOwnerMap();
+        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+            Path folderPath = entry.getKey();
+            String folderName = folderPath.getFileName().toString();
+            if (processTitle.endsWith(folderName)) {
+                deleteOwnerFile(folderPath);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get the base name of the file with the extension '.owner' in the process path which name ends with the given 'processTitle'
+     * 
+     * @param processTitle
+     * @return
+     */
+    public String getOwnerName(String processTitle) {
+        Map<Path, String> folderOwnerMap = getFolderOwnerMap();
+        for (Map.Entry<Path, String> entry : folderOwnerMap.entrySet()) {
+            Path folderPath = entry.getKey();
+            String folderName = folderPath.getFileName().toString();
+            if (processTitle.endsWith(folderName)) {
+                String ownerName = entry.getValue();
+                log.debug("ownerName = " + ownerName);
+                return ownerName;
+            }
+        }
+
+        // not found
+        log.debug("ownerName not set");
+        return "";
     }
 
     /**

@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.hotfolder.nli.model;
+package de.intranda.goobi.plugins.hotfolder.nli;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.log.GUIImportResult;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;

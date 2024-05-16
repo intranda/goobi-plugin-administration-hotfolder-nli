@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.hotfolder.nli.model;
+package de.intranda.goobi.plugins.hotfolder.nli.model.log;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

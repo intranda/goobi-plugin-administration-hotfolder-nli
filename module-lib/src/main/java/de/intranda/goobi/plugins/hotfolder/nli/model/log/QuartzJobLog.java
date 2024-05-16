@@ -1,4 +1,4 @@
-package de.intranda.goobi.plugins.hotfolder.nli.model;
+package de.intranda.goobi.plugins.hotfolder.nli.model.log;
 
 import java.io.IOException;
 import java.io.OutputStream;
