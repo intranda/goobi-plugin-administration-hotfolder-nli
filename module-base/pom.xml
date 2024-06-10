@@ -3,8 +3,16 @@
   <parent>
     <groupId>io.goobi.workflow.plugin</groupId>
     <artifactId>plugin-administration-hotfolder-nli</artifactId>
-    <version>24.04.2</version>
+    <version>24.05</version>
   </parent>
   <artifactId>plugin-administration-hotfolder-nli-base</artifactId>
   <packaging>jar</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>io.goobi.workflow.plugin</groupId>
+      <artifactId>plugin-administration-hotfolder-nli-lib</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
 </project>
