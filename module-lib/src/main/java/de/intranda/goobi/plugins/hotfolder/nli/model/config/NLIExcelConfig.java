@@ -8,7 +8,6 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 
 import lombok.Data;
 
-
 @Data
 public class NLIExcelConfig {
 
@@ -32,10 +31,10 @@ public class NLIExcelConfig {
     private String opacName;
     private String opacHeader;
     private String searchField;
+    private String allowedFilenames;
 
     private boolean moveImage;
     private List<String> mandatoryColumns = new ArrayList<>();
-
 
     /**
      * loads the &lt;config&gt; block from xml file
@@ -53,12 +52,14 @@ public class NLIExcelConfig {
         processHeaderName = xmlConfig.getString("/processHeaderName", null);
         imagesHeaderName = xmlConfig.getString("/imagesHeaderName", null);
         sourceImageFolderMofidicationBlockTimeout = xmlConfig.getInt("/sourceImageFolderMofidicationBlockTimeout", 30);
-        
+
         rowHeader = xmlConfig.getInt("/rowHeader", 1);
         rowDataStart = xmlConfig.getInt("/rowDataStart", 2);
         rowDataEnd = xmlConfig.getInt("/rowDataEnd", 20000);
 
         moveImage = xmlConfig.getBoolean("/moveImages", true);
+
+        allowedFilenames = xmlConfig.getString("/allowedFilenames", ".*\\.(tiff?|pdf|epub)");
 
         List<HierarchicalConfiguration> mml = xmlConfig.configurationsAt("//metadata");
         for (HierarchicalConfiguration md : mml) {
@@ -102,9 +103,6 @@ public class NLIExcelConfig {
         mmo.setSearchField(md.getString("@opacSearchField", null));
         return mmo;
     }
-
-
-
 
     //    private PersonMappingObject getPersons(HierarchicalConfiguration md) {
     //        String rulesetName = md.getString("@ugh");

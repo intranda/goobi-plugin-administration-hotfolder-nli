@@ -57,7 +57,8 @@ public class NLIHotfolderImport {
             //otherwise:
             log.info("NLI hotfolder - importing: " + importFile);
 
-            NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.storageProvider, this.importFolder);
+            NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.storageProvider, this.importFolder,
+                    loadPrefs(hff.getTemplateName()), hff.getTemplateName());
 
             // generate the list of all records
             try {
@@ -75,7 +76,7 @@ public class NLIHotfolderImport {
     }
 
     private ImportObject prepareImportObject(String importFilePath, int lineNumber, Record record, HotfolderFolder hff, NLIExcelImport excelImport) {
-        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff, loadPrefs(hff.getTemplateName()));
+        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff);
         if (io == null) {
             return null;
         }

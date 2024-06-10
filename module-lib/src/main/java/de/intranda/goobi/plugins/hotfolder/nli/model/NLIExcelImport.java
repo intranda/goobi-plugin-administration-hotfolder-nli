@@ -84,14 +84,15 @@ public class NLIExcelImport {
     private boolean replaceExisting = false;
     private boolean moveFiles = false;
 
-    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
-
     private static final String OWNER_FILE_EXTENSION = HotfolderFolder.getOwnerFileExtension();
 
     private List<ImportType> importTypes;
 
     private Process template;
     private final HotfolderPluginConfig pluginConfig;
+    private final String workflowTitle;
+    private final NLIExcelConfig excelConfig;
+    private final Prefs prefs;
     private final StorageProviderInterface storageProvider;
 
     // set of folders that contain files of invalid suffices
@@ -99,9 +100,13 @@ public class NLIExcelImport {
     // set of files that are of invalid suffices
     private HashSet<Path> invalidFileSet = new HashSet<>();
 
-    public NLIExcelImport(HotfolderPluginConfig pluginConfig, StorageProviderInterface storageProvider, String importFolder) {
+    public NLIExcelImport(HotfolderPluginConfig pluginConfig, StorageProviderInterface storageProvider, String importFolder, Prefs prefs,
+            String workflowTitle) {
         this.storageProvider = storageProvider;
         this.pluginConfig = pluginConfig;
+        this.workflowTitle = workflowTitle;
+        this.excelConfig = loadConfig(workflowTitle);
+        this.prefs = prefs;
         // by default /opt/digiverso/goobi/tmp/
         this.importFolder = importFolder;
         // prepare import folder if not available yet
@@ -112,7 +117,7 @@ public class NLIExcelImport {
     }
 
     @SuppressWarnings("unchecked")
-    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff, Prefs prefs) {
+    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff) {
 
         String workflowTitle = hff.getTemplateName();
         NLIExcelConfig config = loadConfig(workflowTitle);
@@ -385,7 +390,7 @@ public class NLIExcelImport {
      * @throws ImportException
      */
     private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        for (MetadataMappingObject mmo : config.getMetadataList()) {
+        for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
             if (mmo.isMandatory()) {
                 Integer col = headerOrder.get(mmo.getHeaderName());
                 if (col == null || rowMap.get(col) == null || rowMap.get(col).isEmpty()) {
@@ -437,7 +442,7 @@ public class NLIExcelImport {
         Fileformat ff = null;
         DocStruct logical = null;
         DocStruct anchor = null;
-        if (!config.isUseOpac()) {
+        if (!getConfig().isUseOpac()) {
             ff = new MetsMods(prefs);
             digitalDocument = new DigitalDocument();
             ff.setDigitalDocument(digitalDocument);
@@ -487,7 +492,7 @@ public class NLIExcelImport {
         String identifier = getCatalogueIdentifierFromRowMap(headerOrder, rowMap);
 
         // find the proper ConfigOpacCatalogue according to the input catalogue
-        String catalogue = config.getOpacName();
+        String catalogue = getConfig().getOpacName();
         ConfigOpacCatalogue coc = getProperConfigOpacCatalogue(catalogue);
         IOpacPlugin myImportOpac = coc.getOpacPlugin();
         if (myImportOpac == null) {
@@ -515,11 +520,11 @@ public class NLIExcelImport {
      * @throws ImportException
      */
     private String getCatalogueIdentifierFromRowMap(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
+        if (StringUtils.isBlank(getConfig().getIdentifierHeaderName())) {
             throw new ImportException("Cannot request catalogue, no identifier column defined");
         }
 
-        String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+        String catalogueIdentifier = rowMap.get(headerOrder.get(getConfig().getIdentifierHeaderName()));
         if (StringUtils.isBlank(catalogueIdentifier)) {
             throw new ImportException("Cannot request catalogue, no identifier in excel file");
         }
@@ -561,7 +566,7 @@ public class NLIExcelImport {
     private Fileformat getFileformatGivenIdentifier(IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, String identifier) throws ImportException {
         Fileformat myRdf = null;
         try {
-            myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
+            myRdf = myImportOpac.search(getConfig().getSearchField(), identifier, coc, prefs);
             if (myRdf == null) {
                 throw new ImportException("Could not import record " + identifier
                         + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
@@ -724,11 +729,11 @@ public class NLIExcelImport {
 
         if (storageProvider.isFileExists(imageSourceFolder) && storageProvider.isDirectory(imageSourceFolder)) {
             String foldername = fileName.replace(".xml", "");
-            String folderNameRule = ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
+            String folderNameRule = getMasterImageDirectoryName();
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
 
             Path path = Paths.get(foldername, "images", folderNameRule);
-            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            String fileNamePrefix = getCellValue(getConfig().getImagesHeaderName(), headerOrder, rowMap);
             copyImagesToFolder(imageSourceFolder, path.toString(), fileNamePrefix);
             // check if there are any files copied to path, and if not, return null to signify this
             if (storageProvider.listFiles(path.toString()).isEmpty()) {
@@ -742,6 +747,14 @@ public class NLIExcelImport {
 
     }
 
+    public String getMasterImageDirectoryName() {
+        try {
+            return ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
+        } catch (NullPointerException e) {
+            return "{processtitle}_master";
+        }
+    }
+
     /**
      * 
      * @param hff HotfolderFolder
@@ -751,7 +764,7 @@ public class NLIExcelImport {
      * @throws ImportException if no image folder is set in the excel file
      */
     private Path getImageFolderPath(HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        String imageFolder = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
+        String imageFolder = getCellValue(getConfig().getProcessHeaderName(), headerOrder, rowMap);
         if (StringUtils.isBlank(imageFolder)) {
             throw new ImportException("No imageFolder in excel File");
         }
@@ -789,7 +802,7 @@ public class NLIExcelImport {
 
         // otherwise, try to replace the existing process
         try {
-            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            String fileNamePrefix = getCellValue(getConfig().getImagesHeaderName(), headerOrder, rowMap);
             writeToExistingProcess(ff, importFolder, existingProcess, fileNamePrefix);
             io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
             io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
@@ -888,7 +901,7 @@ public class NLIExcelImport {
                 storageProvider.createDirectories(targetDir);
                 storageProvider.copyDirectory(currentData, targetDir);
 
-            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(ALLOWED_FILE_SUFFIX_PATTERN)) {
+            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(getConfig().getAllowedFilenames())) {
                 // valid files
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
@@ -1081,6 +1094,10 @@ public class NLIExcelImport {
         }
 
         return new NLIExcelConfig(myconfig);
+    }
+
+    private NLIExcelConfig getConfig() {
+        return this.excelConfig;
     }
 
 }
