@@ -119,14 +119,14 @@ public class NLIExcelImport {
             this.workflowTitle = hff.getTemplateName();
         }
     }
-    
+
     public NLIExcelImport(HotfolderFolder hff, NLIExcelConfig config) {
         this(hff);
         this.config = config;
     }
 
     @SuppressWarnings("unchecked")
-    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff) {
+    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff, HotfolderOwnerManager hotfolderOwners) {
         // reset the template if necessary:
         if (!hff.getTemplateName().equals(workflowTitle)) {
             workflowTitle = hff.getTemplateName();
@@ -149,15 +149,22 @@ public class NLIExcelImport {
                 return null;
             }
 
+            // name the process:
+            currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
+            String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
+
+            if (StringUtils.isBlank(hotfolderOwners.getOwnerName(hff, processName))) {
+                log.debug("No owner file found for process {}", processName);
+                io.setErrorMessage("No owner file found for process " + processName);
+                io.setImportReturnValue(ImportReturnValue.InvalidData);
+                return io;
+            }
+
             // check mandatory fields
             checkMandatoryFields(headerOrder, rowMap);
 
             // generate a mets file
             Fileformat ff = createFileformat(io, headerOrder, rowMap);
-
-            // name the process:
-            currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
-            String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
 
             String fileName = nameProcess(processName, io);
 
@@ -985,7 +992,7 @@ public class NLIExcelImport {
         } else {
             storageProvider.copyFile(file, destination);
         }
-            //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
+        //            Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
 
     }
 
