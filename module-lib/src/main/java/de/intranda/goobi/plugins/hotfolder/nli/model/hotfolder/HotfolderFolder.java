@@ -26,8 +26,6 @@ public class HotfolderFolder {
 
     @Getter
     private String templateName;
-    // time of minutes that a folder should remain unmodified before the import of it starts
-    private Integer minutesInactivity = 30;
     // list of paths of all files including folders inside the project folder
     private List<Path> projectFoldersFileList;
     // list of paths of all folders whose contents are to be imported
@@ -92,17 +90,18 @@ public class HotfolderFolder {
     /**
      * get a list of paths to the folders that are ready for the import
      * 
+     * @param minutesOfInactivity the number of minutes since that last time a folder has been modified for it to be included in the returned list
      * @return a list of folders' paths that is ready for the import
      * @throws IOException
      */
-    public List<Path> getCurrentProcessFolders() throws IOException {
+    public List<Path> getCurrentProcessFolders(int minutesOfInactivity) throws IOException {
         List<Path> lstFoldersToImport = new ArrayList<>();
 
         for (Path barcodePath : lstProcessFolders) {
             log.trace("looking at {}", barcodePath);
             Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(barcodePath));
-            Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesInactivity));
-            if (lastModified.isBefore(thirtyMinutesAgo)) {
+            Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesOfInactivity));
+            if (minutesOfInactivity == 0 || lastModified.isBefore(thirtyMinutesAgo)) {
                 log.trace("Adding process folder {} to list", barcodePath);
                 lstFoldersToImport.add(barcodePath);
             } else {

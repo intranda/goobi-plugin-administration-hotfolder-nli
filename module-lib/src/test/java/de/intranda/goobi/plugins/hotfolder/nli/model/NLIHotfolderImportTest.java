@@ -70,8 +70,8 @@ public class NLIHotfolderImportTest {
         assertEquals("Karenp", hotfolders.get(0).getOwnerName("997008730630705171"));
         assertEquals("Audio_and_Video", hotfolders.get(0).getTemplateName());
         assertEquals("Reuploads-Audio", hotfolders.get(0).getProjectFolder().getFileName().toString());
-        assertEquals(1, hotfolders.get(0).getCurrentProcessFolders().size());
-        assertEquals("997008730630705171", hotfolders.get(0).getCurrentProcessFolders().get(0).getFileName().toString());
+        assertEquals(1, hotfolders.get(0).getCurrentProcessFolders(0).size());
+        assertEquals("997008730630705171", hotfolders.get(0).getCurrentProcessFolders(0).get(0).getFileName().toString());
     }
 
     @Test

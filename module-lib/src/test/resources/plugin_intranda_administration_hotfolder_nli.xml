@@ -2,6 +2,8 @@
 	<!-- hotfolder -->
 	<hotfolderPath>/opt/digiverso/goobi/other/hotfolder</hotfolderPath>
 
+	<!-- time in minutes that a folder should remain unmodified before the import of it starts -->
+	<minutesOfInactivity>0</minutesOfInactivity>
 	<!-- if true then allowedTimeDifference will be used, otherwise allowedNumberOfLogs 
 		will be used -->
 	<useTimeDifference>false</useTimeDifference>

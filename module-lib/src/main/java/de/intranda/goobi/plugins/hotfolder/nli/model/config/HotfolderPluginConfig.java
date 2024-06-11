@@ -62,4 +62,13 @@ public class HotfolderPluginConfig {
 
     }
 
+    /**
+     * time in minutes that a folder should remain unmodified before the import of it starts
+     * 
+     * @return an integer representing the time, at least 0 which means that the folder age is not checked
+     */
+    public int getMinutesOfInactivity() {
+        return baseConfig.getInt("minutesOfInactivity", 30);
+    }
+
 }

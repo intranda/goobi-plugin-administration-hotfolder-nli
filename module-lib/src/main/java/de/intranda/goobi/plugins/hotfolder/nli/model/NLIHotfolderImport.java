@@ -50,7 +50,7 @@ public class NLIHotfolderImport {
     public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException {
         File importFile = hff.getImportFile();
         if (importFile == null) {
-            List<Path> processFolders = hff.getCurrentProcessFolders();
+            List<Path> processFolders = hff.getCurrentProcessFolders(pluginConfig.getMinutesOfInactivity());
             log.trace("importFile: {}, processFolders.size(): {}", importFile, processFolders.size());
             return Collections.emptyList();
         } else {
