@@ -3,6 +3,7 @@ package de.intranda.goobi.plugins.hotfolder.nli.model;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +34,7 @@ public class NLIHotfolderImportTest {
     private final static Path RULESET_PATH = Path.of("src/test/resources/ruleset.xml").toAbsolutePath();
 
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public TemporaryFolder tempFolder = new TemporaryFolder(new File("src/test"));
 
     private Path hotfolderPath;
     private Path importPath;
