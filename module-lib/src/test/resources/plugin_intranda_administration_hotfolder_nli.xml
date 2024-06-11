@@ -42,8 +42,8 @@
 		
 		<!--time in minutes during which a source folder within the hotfolder may 
 			not have been modified for an ingest to proceed -->
-		<sourceImageFolderMofidicationBlockTimeout>0
-		</sourceImageFolderMofidicationBlockTimeout>
+		<sourceImageFolderModificationBlockTimeout>0
+		</sourceImageFolderModificationBlockTimeout>
 
 		<!--Only import media files matching this pattern. Default is '.*\.(tiff?|pdf|epub)' -->
 		<allowedFilenames>.*\.(tiff?|pdf|epub|mov|wav)</allowedFilenames>
@@ -106,8 +106,8 @@
 
 		<!--time in minutes during which a source folder within the hotfolder may 
 			not have been modified for an ingest to proceed -->
-		<sourceImageFolderMofidicationBlockTimout>0
-		</sourceImageFolderMofidicationBlockTimout>
+		<sourceImageFolderModificationBlockTimeout>0
+		</sourceImageFolderModificationBlockTimeout>
 
 		<!--Only import media files matching this pattern. Default is '.*\.(tiff?|pdf|epub)' -->
 		<allowedFilenames>.*\.(tiff?|pdf|epub|mov|wav)</allowedFilenames>
