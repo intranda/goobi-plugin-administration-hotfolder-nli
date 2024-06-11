@@ -32,7 +32,7 @@ public class HotfolderParser {
     public List<HotfolderFolder> getImportFolders(Path hotfolderPath, HotfolderPluginConfig config) throws IOException {
         List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
         log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
-
+        System.out.println("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
         // check schedule to determine whether templates should be ignored or not
         List<String> ignoredTemplates = new ArrayList<>();
         importFolders = importFolders.stream().filter(folder -> {
@@ -47,7 +47,6 @@ public class HotfolderParser {
             }
             return run;
         }).collect(Collectors.toList());
-
         // report all ignored templates
         ignoredTemplates.stream()
                 .distinct()

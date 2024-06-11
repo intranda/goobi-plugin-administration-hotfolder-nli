@@ -37,12 +37,7 @@
 		<!-- which catalogue to use per record; if missing the default will be 
 			used -->
 		<opacHeader>Identifier</opacHeader>
-
-		<schedule>
-			<start>19</start> <!-- local time in hours -->
-			<end>7</end>	  <!-- local time in hours -->
-		</schedule>
-
+		
 		<!--time in minutes during which a source folder within the hotfolder may 
 			not have been modified for an ingest to proceed -->
 		<sourceImageFolderMofidicationBlockTimeout>30

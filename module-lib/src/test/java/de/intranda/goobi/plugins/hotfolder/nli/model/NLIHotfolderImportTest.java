@@ -44,6 +44,11 @@ public class NLIHotfolderImportTest {
 
     @Before
     public void setup() throws IOException, ConfigurationException, PreferencesException {
+
+        assertTrue(Files.exists(HOTFOLDER_PATH));
+        assertTrue(Files.exists(CONFIG_PATH));
+        assertTrue(Files.exists(RULESET_PATH));
+
         this.hotfolderPath = tempFolder.newFolder("hotfolder").toPath();
         this.importPath = tempFolder.newFolder("import").toPath();
         config = new HotfolderPluginConfig(new XMLConfiguration(CONFIG_PATH.toFile()));
@@ -51,13 +56,17 @@ public class NLIHotfolderImportTest {
         this.storageProvider = new NIOFileUtils();
         this.prefs = new Prefs();
         prefs.loadPrefs(RULESET_PATH.toString());
+
+        assertTrue(Files.exists(hotfolderPath));
+        assertTrue(prefs != null);
+
     }
 
     @Test
     public void testGetHotfolder() throws IOException {
         System.out.println("Hotfolder path is " + this.hotfolderPath + " and contains " + Files.list(this.hotfolderPath).count() + " files");
         List<HotfolderFolder> hotfolders = new HotfolderParser(storageProvider).getImportFolders(hotfolderPath, config);
-        assertEquals(1, hotfolders.size());
+        assertEquals("Wrong number of import folders: " + hotfolders.size(), 1, hotfolders.size());
         assertEquals("Karenp", hotfolders.get(0).getOwnerName("997008730630705171"));
         assertEquals("Audio_and_Video", hotfolders.get(0).getTemplateName());
         assertEquals("Reuploads-Audio", hotfolders.get(0).getProjectFolder().getFileName().toString());
