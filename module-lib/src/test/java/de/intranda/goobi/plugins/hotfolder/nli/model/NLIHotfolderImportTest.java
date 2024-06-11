@@ -64,7 +64,6 @@ public class NLIHotfolderImportTest {
 
     @Test
     public void testGetHotfolder() throws IOException {
-        System.out.println("Hotfolder path is " + this.hotfolderPath + " and contains " + Files.list(this.hotfolderPath).count() + " files");
         List<HotfolderFolder> hotfolders = new HotfolderParser(storageProvider).getImportFolders(hotfolderPath, config);
         assertEquals("Wrong number of import folders: " + hotfolders.size(), 1, hotfolders.size());
         assertEquals("Karenp", hotfolders.get(0).getOwnerName("997008730630705171"));

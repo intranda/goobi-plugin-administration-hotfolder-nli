@@ -132,8 +132,7 @@ public class NLIExcelImport {
             Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
 
             // import image source folder
-            boolean sourceFolderImported = importImageSourceFolder(io, hff, headerOrder, rowMap);
-            if (!sourceFolderImported) {
+            if (!importImageSourceFolder(io, hff, headerOrder, rowMap)) {
                 return null;
             }
 
@@ -337,12 +336,12 @@ public class NLIExcelImport {
             checkImageSourceFolder(imageSourceFolder);
             return true;
         } catch (EmptyFolderImportException ee) {
-            log.debug("Cannot import " + imageSourceFolder + ": " + ee.getMessage());
+            System.out.println("Cannot import " + imageSourceFolder + ": " + ee.getMessage());
             log.debug("Deleting empty folder: " + imageSourceFolder);
             storageProvider.deleteDir(imageSourceFolder);
             return false;
         } catch (ImportException e) {
-            log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+            System.out.println("Cannot import " + imageSourceFolder + ": " + e.getMessage());
             return false;
         }
     }
