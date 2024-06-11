@@ -336,12 +336,12 @@ public class NLIExcelImport {
             checkImageSourceFolder(imageSourceFolder);
             return true;
         } catch (EmptyFolderImportException ee) {
-            System.out.println("Cannot import " + imageSourceFolder + ": " + ee.getMessage());
+            log.debug("Cannot import " + imageSourceFolder + ": " + ee.getMessage());
             log.debug("Deleting empty folder: " + imageSourceFolder);
             storageProvider.deleteDir(imageSourceFolder);
             return false;
         } catch (ImportException e) {
-            System.out.println("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+            log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
             return false;
         }
     }
