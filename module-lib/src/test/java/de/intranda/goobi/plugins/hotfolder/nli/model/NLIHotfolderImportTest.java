@@ -34,7 +34,7 @@ public class NLIHotfolderImportTest {
     private final static Path RULESET_PATH = Path.of("src/test/resources/ruleset.xml").toAbsolutePath();
 
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder(new File("src/test"));
+    public TemporaryFolder tempFolder = new TemporaryFolder(new File("src/test").getAbsoluteFile());
 
     private Path hotfolderPath;
     private Path importPath;
@@ -55,6 +55,7 @@ public class NLIHotfolderImportTest {
 
     @Test
     public void testGetHotfolder() throws IOException {
+        System.out.println("Hotfolder path is " + this.hotfolderPath + " and contains " + Files.list(this.hotfolderPath).count() + " files");
         List<HotfolderFolder> hotfolders = new HotfolderParser(storageProvider).getImportFolders(hotfolderPath, config);
         assertEquals(1, hotfolders.size());
         assertEquals("Karenp", hotfolders.get(0).getOwnerName("997008730630705171"));
@@ -66,7 +67,6 @@ public class NLIHotfolderImportTest {
 
     @Test
     public void testImport() throws IOException {
-        NLIHotfolderImport importer = new NLIHotfolderImport(config, storageProvider, importPath.toString());
         List<HotfolderFolder> hotfolders = new HotfolderParser(storageProvider).getImportFolders(hotfolderPath, config);
 
         HotfolderFolder hff = hotfolders.get(0);
