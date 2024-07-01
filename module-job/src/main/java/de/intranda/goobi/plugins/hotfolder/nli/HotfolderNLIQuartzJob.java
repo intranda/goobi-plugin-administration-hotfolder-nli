@@ -29,6 +29,7 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.log.QuartzJobLog;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
+import de.unigoettingen.sub.search.opac.ConfigOpac;
 import lombok.extern.log4j.Log4j2;
 import spark.utils.StringUtils;
 
@@ -149,7 +150,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
     public List<ImportObject> createProcesses(List<HotfolderFolder> importFolders) throws IOException {
         List<ImportObject> imports = new ArrayList<>();
-        NLIHotfolderImport importer = new NLIHotfolderImport(config, this.storageProvider, ConfigurationHelper.getInstance().getTemporaryFolder());
+        NLIHotfolderImport importer = new NLIHotfolderImport(config, this.storageProvider, ConfigurationHelper.getInstance().getTemporaryFolder(),
+                ConfigOpac.getInstance());
         for (HotfolderFolder hff : importFolders) {
 
             try {
