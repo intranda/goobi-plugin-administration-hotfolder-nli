@@ -24,6 +24,7 @@
         <!-- which catalogue to use (as default) -->
         <opacName>arc</opacName>
         <!-- which catalogue to use per record; if missing the default will be used -->
+        <!-- Deprecated - Use identifierHeaderName instead -->
         <opacHeader>UserDefinedB</opacHeader>
         
         <schedule>

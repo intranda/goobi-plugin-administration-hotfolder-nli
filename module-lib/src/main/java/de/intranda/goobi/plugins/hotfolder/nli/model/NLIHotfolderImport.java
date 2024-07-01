@@ -1,6 +1,5 @@
 package de.intranda.goobi.plugins.hotfolder.nli.model;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,15 +11,17 @@ import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.LogType;
 import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
-import org.goobi.production.importer.Record;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.HelperSchritte;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
+import de.unigoettingen.sub.search.opac.ConfigOpac;
 import lombok.extern.log4j.Log4j2;
 import spark.utils.StringUtils;
 import ugh.dl.DigitalDocument;
@@ -40,34 +41,57 @@ public class NLIHotfolderImport {
     private final HotfolderPluginConfig pluginConfig;
     private final StorageProviderInterface storageProvider;
     private final String importFolder;
+    private final ConfigOpac configOpac;
 
-    public NLIHotfolderImport(HotfolderPluginConfig pluginConfig, StorageProviderInterface storageProvider, String importFolder) {
+    public NLIHotfolderImport(HotfolderPluginConfig pluginConfig, StorageProviderInterface storageProvider, String importFolder,
+            ConfigOpac configOpac) {
         this.pluginConfig = pluginConfig;
         this.storageProvider = storageProvider;
         this.importFolder = importFolder;
+        this.configOpac = configOpac;
     }
 
     public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException {
-        File importFile = hff.getImportFile();
-        if (importFile == null) {
+        if (hff.getImportFile() == null) {
             List<Path> processFolders = hff.getCurrentProcessFolders(pluginConfig.getMinutesOfInactivity());
-            log.trace("importFile: {}, processFolders.size(): {}", importFile, processFolders.size());
-            return Collections.emptyList();
+            NLIExcelConfig templateConfig = new NLIExcelConfig(pluginConfig.getTemplateConfig(hff.getTemplateName()));
+            if (!templateConfig.isRequireImportFile()) {
+                //otherwise:
+                log.info("NLI hotfolder - importing without import file");
+
+                NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.configOpac, this.storageProvider, this.importFolder,
+                        loadPrefs(hff.getTemplateName()), hff.getTemplateName());
+
+                // generate the list of all records
+                try {
+                    List<HotfolderRecord> records = excelImport.generateRecordsFromFolder(hff);
+                    // add all ImportObjects regarding the current HotfolderFolder to the list
+                    return addImportObjectsRegardingHotfolderFolder(records, hff, excelImport);
+                } catch (IOException e) {
+                    ImportObject io = new ImportObject();
+                    io.setImportFileName(hff.getTemplateName() + "_" + hff.getProjectFolder().getFileName().toString());
+                    io.setErrorMessage("Could not read import file");
+                    return List.of(io);
+                }
+            } else {
+                log.trace("No importFile: {}, processFolders.size(): {}", hff.getImportFile(), processFolders.size());
+                return Collections.emptyList();
+            }
         } else {
             //otherwise:
-            log.info("NLI hotfolder - importing: " + importFile);
+            log.info("NLI hotfolder - importing: " + hff.getImportFile());
 
-            NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.storageProvider, this.importFolder,
+            NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.configOpac, this.storageProvider, this.importFolder,
                     loadPrefs(hff.getTemplateName()), hff.getTemplateName());
 
             // generate the list of all records
             try {
-                List<Record> records = excelImport.generateRecordsFromFile(importFile);
+                List<HotfolderRecord> records = excelImport.generateRecordsFromFile(hff);
                 // add all ImportObjects regarding the current HotfolderFolder to the list
-                return addImportObjectsRegardingHotfolderFolder(records, importFile, hff, excelImport);
+                return addImportObjectsRegardingHotfolderFolder(records, hff, excelImport);
             } catch (IOException e) {
                 ImportObject io = new ImportObject();
-                io.setImportFileName(importFile.getAbsolutePath());
+                io.setImportFileName(hff.getImportFile().getAbsolutePath());
                 io.setErrorMessage("Could not read import file");
                 return List.of(io);
             }
@@ -75,8 +99,8 @@ public class NLIHotfolderImport {
         }
     }
 
-    private ImportObject prepareImportObject(String importFilePath, int lineNumber, Record record, HotfolderFolder hff, NLIExcelImport excelImport) {
-        ImportObject io = excelImport.generateFile(importFilePath, lineNumber, record, hff);
+    private ImportObject prepareImportObject(HotfolderRecord record, HotfolderFolder hff, NLIExcelImport excelImport) {
+        ImportObject io = excelImport.generateFile(record, hff);
         if (io == null) {
             return null;
         }
@@ -190,14 +214,13 @@ public class NLIHotfolderImport {
         }
     }
 
-    private List<ImportObject> addImportObjectsRegardingHotfolderFolder(List<Record> records, File importFile, HotfolderFolder hff,
+    private List<ImportObject> addImportObjectsRegardingHotfolderFolder(List<HotfolderRecord> records, HotfolderFolder hff,
             NLIExcelImport excelImport) {
         int lineNumber = 1;
-        String importFilePath = importFile.toString();
         List<ImportObject> imports = new ArrayList<>();
-        for (Record record : records) {
+        for (HotfolderRecord record : records) {
             lineNumber++;
-            ImportObject io = prepareImportObject(importFilePath, lineNumber, record, hff, excelImport);
+            ImportObject io = prepareImportObject(record, hff, excelImport);
             if (io != null) {
                 imports.add(io);
             }

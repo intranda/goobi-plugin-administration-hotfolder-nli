@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.MetadataRule;
 import lombok.Data;
 
 @Data
@@ -22,18 +23,21 @@ public class NLIExcelConfig {
     private List<MetadataMappingObject> metadataList = new ArrayList<>();
     private List<PersonMappingObject> personList = new ArrayList<>();
     private List<GroupMappingObject> groupList = new ArrayList<>();
-    private String identifierHeaderName;
-    private String processHeaderName;
-    private String imagesHeaderName;
+    private MetadataRule processIdentifier;
+    private MetadataRule processTitle;
+    private MetadataRule imageNamePrefix;
+    private MetadataRule importFolder;
     private Integer sourceImageFolderMofidicationBlockTimeout;
 
     private boolean useOpac = false;
     private String opacName;
+    @Deprecated
     private String opacHeader;
     private String searchField;
     private String allowedFilenames;
 
     private boolean moveImage;
+    private boolean requireImportFile;
     private List<String> mandatoryColumns = new ArrayList<>();
 
     /**
@@ -48,9 +52,10 @@ public class NLIExcelConfig {
         firstLine = xmlConfig.getInt("/firstLine", 1);
         identifierColumn = xmlConfig.getInt("/identifierColumn", 1);
         conditionalColumn = xmlConfig.getInt("/conditionalColumn", identifierColumn);
-        identifierHeaderName = xmlConfig.getString("/identifierHeaderName", null);
-        processHeaderName = xmlConfig.getString("/processHeaderName", null);
-        imagesHeaderName = xmlConfig.getString("/imagesHeaderName", null);
+        processIdentifier = MetadataRule.from(xmlConfig, "/processIdentifier");
+        processTitle = MetadataRule.from(xmlConfig, "/processTitle");
+        imageNamePrefix = MetadataRule.from(xmlConfig, "/imageNamePrefix");
+        importFolder = MetadataRule.from(xmlConfig, "/importFolder");
         sourceImageFolderMofidicationBlockTimeout = xmlConfig.getInt("/sourceImageFolderModificationBlockTimeout", 30);
 
         rowHeader = xmlConfig.getInt("/rowHeader", 1);
@@ -58,6 +63,7 @@ public class NLIExcelConfig {
         rowDataEnd = xmlConfig.getInt("/rowDataEnd", 20000);
 
         moveImage = xmlConfig.getBoolean("/moveImages", true);
+        requireImportFile = xmlConfig.getBoolean("/requireImportFile", true);
 
         allowedFilenames = xmlConfig.getString("/allowedFilenames", ".*\\.(tiff?|pdf|epub)");
 
@@ -83,24 +89,22 @@ public class NLIExcelConfig {
     private MetadataMappingObject getMetadata(HierarchicalConfiguration md) {
         String rulesetName = md.getString("@ugh");
         String propertyName = md.getString("@property");
-        Integer columnNumber = md.getInteger("@column", null);
         //        Integer identifierColumn = md.getInteger("@identifier", null);
         String headerName = md.getString("@headerName", null);
         String normdataHeaderName = md.getString("@normdataHeaderName", null);
         String docType = md.getString("@docType", "child");
         Boolean boMandatory = md.getBoolean("@mandatory", false);
+        MetadataRule rule = MetadataRule.from(md);
 
         MetadataMappingObject mmo = new MetadataMappingObject();
-        mmo.setExcelColumn(columnNumber);
         //        mmo.setIdentifierColumn(identifierColumn);
         mmo.setPropertyName(propertyName);
         mmo.setRulesetName(rulesetName);
-        mmo.setHeaderName(headerName);
         mmo.setNormdataHeaderName(normdataHeaderName);
         mmo.setDocType(docType);
         mmo.setMandatory(boMandatory);
+        mmo.setRule(rule);
 
-        mmo.setSearchField(md.getString("@opacSearchField", null));
         return mmo;
     }
 

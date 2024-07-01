@@ -1,5 +1,6 @@
 package de.intranda.goobi.plugins.hotfolder.nli.model.config;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.MetadataRule;
 import lombok.Data;
 
 @Data
@@ -7,17 +8,15 @@ public class MetadataMappingObject {
 
     private String rulesetName;
     private String propertyName;
-    private Integer excelColumn;
-
-    private String headerName;
 
     private String normdataHeaderName;
 
     private String docType;
 
-    private String searchField;
     private Boolean mandatory;
-    
+
+    private MetadataRule rule;
+
     public boolean isMandatory() {
         return mandatory;
     }

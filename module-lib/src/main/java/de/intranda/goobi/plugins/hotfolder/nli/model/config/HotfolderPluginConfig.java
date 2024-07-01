@@ -35,7 +35,12 @@ public class HotfolderPluginConfig {
         try {
             myconfig = baseConfig.configurationAt("//config[./template = '" + templateName + "']");
         } catch (IllegalArgumentException e) {
-            myconfig = baseConfig.configurationAt("//config[./template = '*']");
+            try {
+                myconfig = baseConfig.configurationAt("//config[./template = '*']");
+            } catch (IllegalArgumentException e1) {
+                throw new IllegalArgumentException(
+                        "No config found for templatge " + templateName + " and no general config with <template>*</template>");
+            }
         }
 
         return myconfig;
@@ -69,6 +74,10 @@ public class HotfolderPluginConfig {
      */
     public int getMinutesOfInactivity() {
         return baseConfig.getInt("minutesOfInactivity", 30);
+    }
+
+    public String getIllegalCharacterReplacement() {
+        return baseConfig.getString("illegalCharacerReplacement", "");
     }
 
 }

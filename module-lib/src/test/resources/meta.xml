@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets:mets OBJID="" xsi:schemaLocation="http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd" xmlns:mets="http://www.loc.gov/METS/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:goobi="http://meta.goobi.org/v1.5.1/" xmlns:xlink="http://www.w3.org/1999/xlink">
+   <mets:metsHdr CREATEDATE="2023-12-18T13:13:01Z">
+      <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+         <mets:name>Goobi - 70b17 - 2023-08-17 12:58</mets:name>
+         <mets:note>Goobi</mets:note>
+      </mets:agent>
+   </mets:metsHdr>
+   <mets:dmdSec ID="DMDLOG_0000">
+      <mets:mdWrap MDTYPE="MODS">
+         <mets:xmlData>
+            <mods:mods>
+               <mods:extension>
+                  <goobi:goobi>
+                     <goobi:metadata name="PublicationYear">1789</goobi:metadata>
+                     <goobi:metadata name="CreatorsAllOrigin">Thunberg, Carl Peter; Ahl, Jonas Nicolaus</goobi:metadata>
+                     <goobi:metadata name="TSL_ATS">thunspec</goobi:metadata>
+                     <goobi:metadata name="PlaceOfPublication">Upsaliæ</goobi:metadata>
+                     <goobi:metadata name="CatalogIDSource">577843346</goobi:metadata>
+                     <goobi:metadata name="PublisherName">Edman</goobi:metadata>
+                     <goobi:metadata name="_dateDigitization">2017</goobi:metadata>
+                     <goobi:metadata name="TitleDocMainShort">Specimen ichthyologicum De muraena et ophichtho</goobi:metadata>
+                     <goobi:metadata name="shelfmarksource">8 ZOOL VIII, 8545</goobi:metadata>
+                     <goobi:metadata name="singleDigCollection">General</goobi:metadata>
+                     <goobi:metadata name="singleDigCollection">Biology</goobi:metadata>
+                     <goobi:metadata name="DocLanguage">lat</goobi:metadata>
+                     <goobi:metadata name="CatalogIDDigital">990037838120205171</goobi:metadata>
+                     <goobi:metadata name="TitleDocMain">Specimen ichthyologicum De muraena et ophichtho</goobi:metadata>
+                     <goobi:metadata name="Author" type="person">
+                        <goobi:lastName>Thunberg</goobi:lastName>
+                        <goobi:firstName>Carl Peter</goobi:firstName>
+                        <goobi:authorityID>gnd</goobi:authorityID>
+                        <goobi:authorityURI>http://d-nb.info/gnd/</goobi:authorityURI>
+                        <goobi:authorityValue>119036495</goobi:authorityValue>
+                        <goobi:displayName>Thunberg, Carl Peter</goobi:displayName>
+                     </goobi:metadata>
+                     <goobi:metadata name="Author" type="person">
+                        <goobi:lastName>Ahl</goobi:lastName>
+                        <goobi:firstName>Jonas Nicolaus</goobi:firstName>
+                        <goobi:authorityID>gnd</goobi:authorityID>
+                        <goobi:authorityURI>http://d-nb.info/gnd/</goobi:authorityURI>
+                        <goobi:authorityValue>1055362274</goobi:authorityValue>
+                        <goobi:displayName>Ahl, Jonas Nicolaus</goobi:displayName>
+                     </goobi:metadata>
+                  </goobi:goobi>
+               </mods:extension>
+            </mods:mods>
+         </mets:xmlData>
+      </mets:mdWrap>
+   </mets:dmdSec>
+   <mets:dmdSec ID="DMDPHYS_0000">
+      <mets:mdWrap MDTYPE="MODS">
+         <mets:xmlData>
+            <mods:mods>
+               <mods:extension>
+                  <goobi:goobi>
+                     <goobi:metadata name="pathimagefiles">file:///opt/digiverso/g2g/workspace/workflow/metadata/3/images/bergsphi_625017145_media</goobi:metadata>
+                  </goobi:goobi>
+               </mods:extension>
+            </mods:mods>
+         </mets:xmlData>
+      </mets:mdWrap>
+   </mets:dmdSec>
+   <mets:fileSec>
+   </mets:fileSec>
+   <mets:structMap TYPE="LOGICAL">
+      <mets:div DMDID="DMDLOG_0000" ID="LOG_0000" TYPE="Volume">
+      </mets:div>
+   </mets:structMap>
+   <mets:structMap TYPE="PHYSICAL">
+      <mets:div DMDID="DMDPHYS_0000" ID="PHYS_0000" TYPE="BoundBook">
+      </mets:div>
+   </mets:structMap>
+</mets:mets>
