@@ -4,6 +4,7 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.jboss.weld.exceptions.IllegalArgumentException;
 
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.VariableReplacer;
@@ -77,11 +78,16 @@ public class MetadataRule {
     public static MetadataRule from(HierarchicalConfiguration config) {
         if (config.containsKey(".")) {
             return new MetadataRule(config.getString("."), "", "");
-        } else {
+        } else if (config.containsKey("/rule")) {
             String rule = config.getString("/rule");
             String replace = config.getString("rule/@replace", "");
             String replacement = config.getString("rule/@replaceWith", "");
             return new MetadataRule(rule, replace, replacement);
+        } else if (config.containsKey("@headerName")) {
+            return new MetadataRule(config.getString("@headerName"), "", "");
+        } else {
+            throw new IllegalArgumentException(
+                    "Given configuration does not contain information about source of metadata value. It requires either a text value, a <rule> child element or a 'headerName' attribute");
         }
     }
 
