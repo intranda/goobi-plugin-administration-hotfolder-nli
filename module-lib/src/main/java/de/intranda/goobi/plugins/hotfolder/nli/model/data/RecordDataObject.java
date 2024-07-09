@@ -3,7 +3,7 @@ package de.intranda.goobi.plugins.hotfolder.nli.model.data;
 import java.util.HashMap;
 import java.util.Map;
 
-import software.amazon.awssdk.utils.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class RecordDataObject implements IRecordDataObject {
 
