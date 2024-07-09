@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -85,7 +86,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
         // prepare QuartzJobLog instance for recording QuartzJob errors and periods where there is no file to upload
         QuartzJobLog quartzJobLog = QuartzJobLog.getInstance(config.getHotfolderPath());
-
+        List<GUIImportResult> guiResults = Collections.emptyList();
         try {
             // set lock
             storageProvider.createFile(lockFile);
@@ -97,22 +98,19 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             List<ImportObject> imports = createProcesses(importFolders);
             log.info("NLI hotfolder: Created processes. " + imports.size() + "import objects were created");
 
-            List<GUIImportResult> guiResults = imports.stream()
+            guiResults = imports.stream()
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
-            // uncomment the following block to test QuartzJobLog 
-            //            if (counter < 7) { // NOSONAR
-            //                ++counter;
-            //                // test no file periods
-            //                guiResults = new ArrayList<>();
-            //                // test quartz errors log
-            //                if (counter % 3 == 0) {
-            //                    throw new Exception("Exception for testing QuartzJobLog.");
-            //                } else if (counter % 3 == 1) {
-            //                    throw new Throwable("Throwable for testing QuartzJobLog.");
-            //                }
-            //            }
+        } catch (Exception e) {
+            log.error("Error running NLI hotfolder: {}", e);
+            // record the exception
+            quartzJobLog.addErrorEntry(e.getMessage());
+        } catch (Throwable e) {
+            log.error("Unexpected error running NLI hotfolder: {}", e);
+            // record the unexpected error
+            quartzJobLog.addErrorEntry(e.getMessage());
+        } finally {
 
             if (guiResults.size() > 0) {
                 // ending an existing period where no file is to upload, no harm if no period has been started yet
@@ -126,15 +124,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 log.debug("guiResults is empty, skipping...");
             }
 
-        } catch (Exception e) {
-            log.error("Error running NLI hotfolder: {}", e);
-            // record the exception
-            quartzJobLog.addErrorEntry(e.getMessage());
-        } catch (Throwable e) {
-            log.error("Unexpected error running NLI hotfolder: {}", e);
-            // record the unexpected error
-            quartzJobLog.addErrorEntry(e.getMessage());
-        } finally {
             log.info("NLI hotfolder: Done with import run. Deleting lockFile");
             try {
                 if (storageProvider.isFileExists(lockFile)) {
