@@ -123,7 +123,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
         try {
             // set lock
-            storageProvider.createFile(lockFile);
+            Files.createFile(lockFile);
             log.info("NLI hotfolder: Starting import run");
 
             List<HotfolderFolder> importFolders = getImportFolders(hotfolderPath);
@@ -136,7 +136,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     .map(GUIImportResult::new)
                     .collect(Collectors.toList());
 
-            // uncomment the following block to test QuartzJobLog 
+            // uncomment the following block to test QuartzJobLog
             //            if (counter < 7) { // NOSONAR
             //                ++counter;
             //                // test no file periods
@@ -488,7 +488,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
     private String getReducedPreviousRunInfos(Path resultsJsonPath, int numberSetting) throws IOException {
         if (!storageProvider.isFileExists(resultsJsonPath)) {
-            storageProvider.createFile(resultsJsonPath);
+            Files.createFile(resultsJsonPath);
             return "]";
         }
 
@@ -546,7 +546,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         // lastResults has form [[{},{}],\n[{},{}],\n[{},{}]]
         // get rid of the first [ and the last ]
         String results = lastResults.substring(lastResults.indexOf("[") + 1, lastResults.lastIndexOf("]"));
-        // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...], 
+        // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...],
         // where each array represents a log entry of one previous run
         String[] resultsArray = results.split(",\\n");
         LocalDateTime now = LocalDateTime.now();
