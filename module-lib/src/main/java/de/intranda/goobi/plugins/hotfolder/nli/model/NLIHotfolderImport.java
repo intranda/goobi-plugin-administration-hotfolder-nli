@@ -15,6 +15,9 @@ import org.goobi.production.importer.ImportObject;
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.InvalidFolderImportException;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.MissingResourcesImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.HelperSchritte;
@@ -51,7 +54,7 @@ public class NLIHotfolderImport {
         this.configOpac = configOpac;
     }
 
-    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException {
+    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException, ImportException {
         if (hff.getImportFile() == null) {
             List<Path> processFolders = hff.getCurrentProcessFolders(pluginConfig.getMinutesOfInactivity());
             NLIExcelConfig templateConfig = new NLIExcelConfig(pluginConfig.getTemplateConfig(hff.getTemplateName()));
@@ -80,7 +83,11 @@ public class NLIHotfolderImport {
         } else {
             //otherwise:
             log.info("NLI hotfolder - importing: " + hff.getImportFile());
-
+            Prefs prefs = loadPrefs(hff.getTemplateName());
+            if (prefs == null) {
+                throw new MissingResourcesImportException(
+                        "Could not load preferences file for template " + hff.getTemplateName() + ". Preferences file may be invalid");
+            }
             NLIExcelImport excelImport = new NLIExcelImport(this.pluginConfig, this.configOpac, this.storageProvider, this.importFolder,
                     loadPrefs(hff.getTemplateName()), hff.getTemplateName());
 
@@ -228,12 +235,12 @@ public class NLIHotfolderImport {
         return imports;
     }
 
-    private Prefs loadPrefs(String workflowTitle) {
+    private Prefs loadPrefs(String workflowTitle) throws ImportException {
         org.goobi.beans.Process template = ProcessManager.getProcessByTitle(workflowTitle);
         if (template == null) {
-            throw new IllegalStateException("Error getting config for template '" + workflowTitle + "'. No such process found");
+            throw new InvalidFolderImportException("Error getting config for template '" + workflowTitle + "'. No such process template found");
         } else if (template.getRegelsatz() == null) {
-            throw new IllegalStateException("No ruleset found for template " + template.getTitel());
+            throw new MissingResourcesImportException("No ruleset found for template " + template.getTitel());
         }
         return template.getRegelsatz().getPreferences();
     }

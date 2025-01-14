@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.NLIHotfolderImport;
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderParser;
 import de.intranda.goobi.plugins.hotfolder.nli.model.log.GUIImportResult;
@@ -150,6 +151,8 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                 throw e;
             } catch (NullPointerException | IllegalStateException e) {
                 log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
+            } catch (ImportException e) {
+                log.error("NLI hotfolder - Error  when processing import folder " + hff.getProjectFolder() + ". Reason: " + e.toString());
             }
         }
 

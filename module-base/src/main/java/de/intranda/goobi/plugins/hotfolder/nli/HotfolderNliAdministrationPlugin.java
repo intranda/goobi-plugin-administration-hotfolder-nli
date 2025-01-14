@@ -91,7 +91,6 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
      * Constructor
      */
     public HotfolderNliAdministrationPlugin() {
-        log.info("NLI hotfolder admnistration plugin started");
         hotfolderPath = Paths.get(ConfigPlugins.getPluginConfig(title).getString("hotfolderPath"));
     }
 
