@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.data.IRecordDataObject;
@@ -12,6 +13,7 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.data.RecordDataObject;
 
 public class NLIExcelConfigTest {
 
+    @Ignore
     @Test
     public void test_readImportFolder() throws ConfigurationException {
         Path configPath = Path.of("/home/florian/Downloads/plugin_intranda_administration_hotfolder_nli.xml");

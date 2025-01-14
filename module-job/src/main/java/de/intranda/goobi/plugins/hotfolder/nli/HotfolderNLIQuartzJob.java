@@ -90,7 +90,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         List<GUIImportResult> guiResults = Collections.emptyList();
         try {
             // set lock
-            storageProvider.createFile(lockFile);
+            Files.createFile(lockFile);
             log.info("NLI hotfolder: Starting import run");
 
             List<HotfolderFolder> importFolders = this.hotfolderParser.getImportFolders(config.getHotfolderPath(), config);
@@ -192,7 +192,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
     private String getReducedPreviousRunInfos(Path resultsJsonPath, int numberSetting) throws IOException {
         if (!storageProvider.isFileExists(resultsJsonPath)) {
-            storageProvider.createFile(resultsJsonPath);
+            Files.createFile(resultsJsonPath);
             return "]";
         }
 

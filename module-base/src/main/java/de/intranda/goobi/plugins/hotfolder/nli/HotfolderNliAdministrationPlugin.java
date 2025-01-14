@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -121,7 +122,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
     public void pauseWork() throws IOException {
         Path pauseFile = hotfolderPath.resolve("hotfolder_pause.lock");
         if (!storageProvider.isFileExists(pauseFile)) {
-            storageProvider.createFile(pauseFile);
+            Files.createFile(pauseFile);
         }
     }
 
@@ -148,7 +149,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         lastRunInfoLoadTime = Instant.now();
         Path lastRunInfoPath = hotfolderPath.resolve(RESULTS_JSON_FILENAME);
         if (!storageProvider.isFileExists(lastRunInfoPath)) {
-            lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
+            lastRunInfo = new LinkedHashMap<>();
             return;
         }
 
@@ -157,7 +158,7 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         List<GUIImportResult> results = listOfResults.size() > 0 ? listOfResults.get(logNumber) : new ArrayList<>();
 
         // clearing up old entries and reload from the json file
-        lastRunInfo = new LinkedHashMap<String, List<GUIImportResult>>();
+        lastRunInfo = new LinkedHashMap<>();
 
         // add all GUI results accordingly
         for (GUIImportResult guiResult : results) {
