@@ -17,15 +17,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
-import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
-import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.input.BOMInputStream;
@@ -42,14 +40,19 @@ import org.goobi.beans.Processproperty;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.importer.ImportObject;
-import org.goobi.production.importer.Record;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.MetadataMappingObject;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.ExcelDataObject;
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.IRecordDataObject;
+import de.intranda.goobi.plugins.hotfolder.nli.model.data.RecordDataObject;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.EmptyFolderImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
-import de.sub.goobi.config.ConfigPlugins;
+import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.sub.goobi.config.ConfigurationHelper;
-import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
@@ -72,10 +75,8 @@ import ugh.fileformats.mets.MetsMods;
 
 @Log4j2
 @Data
-//@PluginImplementation
 public class NLIExcelImport {
 
-    private Prefs prefs;
     private String importFolder;
     private String data;
     private String currentIdentifier;
@@ -87,92 +88,83 @@ public class NLIExcelImport {
     private boolean replaceExisting = false;
     private boolean moveFiles = false;
 
-    private static String title = "intranda_administration_hotfolder_nli";
-    private static StorageProviderInterface storageProvider = StorageProvider.getInstance();
-
-    private static final String ALLOWED_FILE_SUFFIX_PATTERN = ".*\\.(tiff?|pdf|epub)";
-
     private static final String OWNER_FILE_EXTENSION = HotfolderFolder.getOwnerFileExtension();
 
     private List<ImportType> importTypes;
-    private String workflowTitle;
 
-    private NLIExcelConfig config;
     private Process template;
+    private final HotfolderPluginConfig pluginConfig;
+    private final String workflowTitle;
+    private final NLIExcelConfig excelConfig;
+    private final Prefs prefs;
+    private final StorageProviderInterface storageProvider;
 
     // set of folders that contain files of invalid suffices
     private HashSet<Path> dirtyFolderSet = new HashSet<>();
     // set of files that are of invalid suffices
     private HashSet<Path> invalidFileSet = new HashSet<>();
 
-    public NLIExcelImport(HotfolderFolder hff) {
+    private final ConfigOpac configOpac;
 
+    public NLIExcelImport(HotfolderPluginConfig pluginConfig, ConfigOpac configOpac, StorageProviderInterface storageProvider, String importFolder,
+            Prefs prefs,
+            String workflowTitle) {
+        this.storageProvider = storageProvider;
+        this.pluginConfig = pluginConfig;
+        this.configOpac = configOpac;
+        this.workflowTitle = workflowTitle;
+        this.excelConfig = loadConfig(workflowTitle);
+        this.prefs = prefs;
         // by default /opt/digiverso/goobi/tmp/
-        importFolder = ConfigurationHelper.getInstance().getTemporaryFolder();
+        this.importFolder = importFolder;
         // prepare import folder if not available yet
         prepareImportFolder(importFolder);
 
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.FILE);
-
-        if (hff != null) {
-            this.workflowTitle = hff.getTemplateName();
-        }
-    }
-
-    public NLIExcelImport(HotfolderFolder hff, NLIExcelConfig config) {
-        this(hff);
-        this.config = config;
     }
 
     @SuppressWarnings("unchecked")
-    public ImportObject generateFile(String sourceFile, int rowNumber, Record record, HotfolderFolder hff, HotfolderOwnerManager hotfolderOwners) {
-        // reset the template if necessary:
-        if (!hff.getTemplateName().equals(workflowTitle)) {
-            workflowTitle = hff.getTemplateName();
-            config = null;
-            getConfig();
-        }
+    public ImportObject generateFile(HotfolderRecord record, HotfolderFolder hff) {
+
+        String workflowTitle = hff.getTemplateName();
+        NLIExcelConfig config = loadConfig(workflowTitle);
 
         ImportObject io = new ImportObject();
-        io.setImportFileName(sourceFile + ":" + rowNumber);
         try {
             // prepare headerOrder and rowMap
-            Object tempObject = record.getObject();
-            List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
-            Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
-            Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
+            IRecordDataObject tempObject = record.getDataObject();
 
             // import image source folder
-            boolean sourceFolderImported = importImageSourceFolder(io, hff, headerOrder, rowMap);
-            if (!sourceFolderImported) {
+            if (!importImageSourceFolder(io, hff, tempObject)) {
                 return null;
             }
 
             // name the process:
-            currentIdentifier = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
-            String processName = hff.getProjectFolder().getFileName() + "_" + currentIdentifier;
-
-            if (StringUtils.isBlank(hotfolderOwners.getOwnerName(hff, processName))) {
+            currentIdentifier = config.getProcessIdentifier().getValue(tempObject);
+            String processName = config.getProcessTitle().getValue(tempObject);
+            if (StringUtils.isBlank(hff.getOwnerName(processName))) {
                 log.debug("No owner file found for process {}", processName);
                 io.setErrorMessage("No owner file found for process " + processName);
                 io.setImportReturnValue(ImportReturnValue.InvalidData);
                 return io;
             }
+            String processNameCleaned = processName.replaceAll(ConfigurationHelper.getInstance().getProcessTitleReplacementRegex(),
+                    this.pluginConfig.getIllegalCharacterReplacement());
 
             // check mandatory fields
-            checkMandatoryFields(headerOrder, rowMap);
+            checkMandatoryFields(tempObject);
 
             // generate a mets file
-            Fileformat ff = createFileformat(io, headerOrder, rowMap);
+            Fileformat ff = createFileformat(io, tempObject);
 
-            String fileName = nameProcess(processName, io);
+            String fileName = nameProcess(processNameCleaned, io);
 
             // write mets file into import folder
             ff.write(fileName);
 
             // copy the image to the import folder, which lies directly in the goobi import directory and contains the files to be imported
-            Path importImageFolder = copyImagesFromSourceToTempFolder(io, fileName, hff, headerOrder, rowMap);
+            Path importImageFolder = copyImagesFromSourceToTempFolder(io, fileName, hff, tempObject);
             log.debug("importImageFolder = " + importImageFolder);
             if (importImageFolder == null) {
                 // there is nothing valid to import
@@ -187,7 +179,7 @@ public class NLIExcelImport {
             // check if the process exists
             if (replaceExisting) {
                 // ImportReturnValue might be changed by the following statement
-                replaceExistingProcess(io, ff, importImageFolder, headerOrder, rowMap);
+                replaceExistingProcess(io, ff, importImageFolder, tempObject);
             }
 
         } catch (ImportException e) {
@@ -205,16 +197,11 @@ public class NLIExcelImport {
         return io;
     }
 
-    public void deleteSourceFiles(HotfolderFolder hff, Record record) {
-        // prepare headerOrder and rowMap
-        Object tempObject = record.getObject();
-        List<Map<?, ?>> tempList = (List<Map<?, ?>>) tempObject;
-        Map<String, Integer> headerOrder = (Map<String, Integer>) tempList.get(0);
-        Map<Integer, String> rowMap = (Map<Integer, String>) tempList.get(1);
+    public void deleteSourceFiles(HotfolderFolder hff, HotfolderRecord record) {
 
         Path sourceFolder;
         try {
-            sourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
+            sourceFolder = getImageFolderPath(hff, record.getDataObject());
             if (sourceFolder != null && storageProvider.isFileExists(sourceFolder)) {
                 // delete all valid files from dirty folders
                 if (dirtyFolderSet.contains(sourceFolder)) {
@@ -260,20 +247,12 @@ public class NLIExcelImport {
         }
     }
 
-    //    @Override
-    //    public List<Record> splitRecords(String records) {
-    //        return null;
-    //    }
+    public List<HotfolderRecord> generateRecordsFromFile(HotfolderFolder hff) throws IOException {
 
-    //    @Override
-    public List<Record> generateRecordsFromFile(File file) throws IOException {
-
-        config = null;
-        List<Record> recordList = new ArrayList<>();
-        String idColumn = getConfig().getIdentifierHeaderName();
+        List<HotfolderRecord> recordList = new ArrayList<>();
         Map<String, Integer> headerOrder = new HashMap<>();
 
-        try (InputStream fileInputStream = new FileInputStream(file);
+        try (InputStream fileInputStream = new FileInputStream(hff.getImportFile());
                 BOMInputStream in = new BOMInputStream(fileInputStream, false);
                 Workbook wb = WorkbookFactory.create(in)) {
 
@@ -312,7 +291,7 @@ public class NLIExcelImport {
 
             // run through all the data rows
             while (rowIterator.hasNext() && rowCounter < rowDataEnd) {
-                rowCounter = addRowProcess(recordList, idColumn, headerOrder, rowIterator, rowCounter);
+                rowCounter = addRowProcess(hff, recordList, headerOrder, rowIterator, rowCounter);
             }
         } catch (IOException e) {
             log.error(e);
@@ -329,21 +308,6 @@ public class NLIExcelImport {
     //        return 4589689;
     //    }
 
-    public NLIExcelConfig getConfig() {
-        if (config == null) {
-            config = loadConfig(workflowTitle);
-            template = ProcessManager.getProcessByTitle(workflowTitle);
-            if (template == null) {
-                throw new IllegalStateException("Error getting config for template '" + workflowTitle + "'. No such process found");
-            } else if (template.getRegelsatz() == null) {
-                throw new IllegalStateException("No ruleset found for template " + template.getTitel());
-            }
-            prefs = template.getRegelsatz().getPreferences();
-        }
-
-        return config;
-    }
-
     // ======= private methods ======= //
 
     /**
@@ -357,11 +321,11 @@ public class NLIExcelImport {
      * @throws IOException
      * @throws EmptyFolderImportException
      */
-    private boolean importImageSourceFolder(ImportObject io, HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+    private boolean importImageSourceFolder(ImportObject io, HotfolderFolder hff, IRecordDataObject data)
             throws IOException, EmptyFolderImportException {
         Path imageSourceFolder = null;
         try {
-            imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
+            imageSourceFolder = getImageFolderPath(hff, data);
             io.setImportFileName(imageSourceFolder.toString());
             checkImageSourceFolder(imageSourceFolder);
             return true;
@@ -418,12 +382,11 @@ public class NLIExcelImport {
      * @param rowMap map between the row number as an integer and the row as a string
      * @throws ImportException
      */
-    private void checkMandatoryFields(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        for (MetadataMappingObject mmo : config.getMetadataList()) {
+    private void checkMandatoryFields(IRecordDataObject data) throws ImportException {
+        for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
             if (mmo.isMandatory()) {
-                Integer col = headerOrder.get(mmo.getHeaderName());
-                if (col == null || rowMap.get(col) == null || rowMap.get(col).isEmpty()) {
-                    throw new ImportException("Missing column: " + mmo.getHeaderName());
+                if (StringUtils.isBlank(mmo.getRule().getValue(data))) {
+                    throw new ImportException("Missing column: " + mmo.getRule().getRule());
                 }
             }
         }
@@ -441,16 +404,16 @@ public class NLIExcelImport {
      * @throws MetadataTypeNotAllowedException
      * @throws ImportException
      */
-    private Fileformat createFileformat(ImportObject io, Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+    private Fileformat createFileformat(ImportObject io, IRecordDataObject data)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
-        Fileformat ff = initializeFileformat(headerOrder, rowMap);
+        Fileformat ff = initializeFileformat(data);
         DocStruct logical = ff.getDigitalDocument().getLogicalDocStruct();
         DocStruct anchor = null;
         if (Optional.ofNullable(logical).map(DocStruct::getType).map(DocStructType::isAnchor).orElse(false)) {
             anchor = logical;
             logical = anchor.getAllChildren().stream().findFirst().orElse(null);
         }
-        writeMetadataToDocStruct(io, logical, anchor, headerOrder, rowMap);
+        writeMetadataToDocStruct(io, logical, anchor, data);
         return ff;
     }
 
@@ -465,13 +428,13 @@ public class NLIExcelImport {
      * @throws MetadataTypeNotAllowedException
      * @throws ImportException
      */
-    private Fileformat initializeFileformat(Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+    private Fileformat initializeFileformat(IRecordDataObject data)
             throws PreferencesException, TypeNotAllowedForParentException, MetadataTypeNotAllowedException, ImportException {
         DigitalDocument digitalDocument = null;
         Fileformat ff = null;
         DocStruct logical = null;
         DocStruct anchor = null;
-        if (!config.isUseOpac()) {
+        if (!getConfig().isUseOpac()) {
             ff = new MetsMods(prefs);
             digitalDocument = new DigitalDocument();
             ff.setDigitalDocument(digitalDocument);
@@ -480,7 +443,7 @@ public class NLIExcelImport {
             logical = digitalDocument.createDocStruct(logicalType);
             digitalDocument.setLogicalDocStruct(logical);
         } else {
-            ff = getRecordFromCatalogue(headerOrder, rowMap);
+            ff = getRecordFromCatalogue(data);
             digitalDocument = ff.getDigitalDocument();
             logical = digitalDocument.getLogicalDocStruct();
             if (logical.getType().isAnchor()) {
@@ -515,13 +478,13 @@ public class NLIExcelImport {
      * @return Fileformat object created from Catalogue
      * @throws ImportException
      */
-    private Fileformat getRecordFromCatalogue(Map<String, Integer> headerOrder, Map<Integer, String> rowMap)
+    private Fileformat getRecordFromCatalogue(IRecordDataObject data)
             throws ImportException {
         // get catalogue identifier
-        String identifier = getCatalogueIdentifierFromRowMap(headerOrder, rowMap);
+        String identifier = getCatalogueIdentifierFromRowMap(data);
 
         // find the proper ConfigOpacCatalogue according to the input catalogue
-        String catalogue = config.getOpacName();
+        String catalogue = getConfig().getOpacName();
         ConfigOpacCatalogue coc = getProperConfigOpacCatalogue(catalogue);
         IOpacPlugin myImportOpac = coc.getOpacPlugin();
         if (myImportOpac == null) {
@@ -548,12 +511,12 @@ public class NLIExcelImport {
      * @return the catalogue identifier
      * @throws ImportException
      */
-    private String getCatalogueIdentifierFromRowMap(Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        if (StringUtils.isBlank(config.getIdentifierHeaderName())) {
+    private String getCatalogueIdentifierFromRowMap(IRecordDataObject data) throws ImportException {
+        if (getConfig().getProcessIdentifier().isBlank()) {
             throw new ImportException("Cannot request catalogue, no identifier column defined");
         }
 
-        String catalogueIdentifier = rowMap.get(headerOrder.get(config.getIdentifierHeaderName()));
+        String catalogueIdentifier = getConfig().getProcessIdentifier().getValue(data);
         if (StringUtils.isBlank(catalogueIdentifier)) {
             throw new ImportException("Cannot request catalogue, no identifier in excel file");
         }
@@ -570,7 +533,7 @@ public class NLIExcelImport {
      */
     private ConfigOpacCatalogue getProperConfigOpacCatalogue(String catalogue) throws ImportException {
         ConfigOpacCatalogue coc = null;
-        for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(workflowTitle)) {
+        for (ConfigOpacCatalogue configOpacCatalogue : configOpac.getAllCatalogues(workflowTitle)) {
             if (configOpacCatalogue.getTitle().equals(catalogue)) {
                 coc = configOpacCatalogue;
                 // no break here, so by multiple occurrences take the last one? - Zehong
@@ -595,7 +558,7 @@ public class NLIExcelImport {
     private Fileformat getFileformatGivenIdentifier(IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, String identifier) throws ImportException {
         Fileformat myRdf = null;
         try {
-            myRdf = myImportOpac.search(config.getSearchField(), identifier, coc, prefs);
+            myRdf = myImportOpac.search(getConfig().getSearchField(), identifier, coc, prefs);
             if (myRdf == null) {
                 throw new ImportException("Could not import record " + identifier
                         + ". Usually this means a ruleset mapping is not correct or the record can not be found in the catalogue.");
@@ -660,15 +623,14 @@ public class NLIExcelImport {
      * @param headerOrder map between the header as a string and its order as an integer
      * @param rowMap map between the row number as an integer and the row as a string
      */
-    private void writeMetadataToDocStruct(ImportObject io, DocStruct logical, DocStruct anchor, Map<String, Integer> headerOrder,
-            Map<Integer, String> rowMap) {
+    private void writeMetadataToDocStruct(ImportObject io, DocStruct logical, DocStruct anchor, IRecordDataObject data) {
         for (MetadataMappingObject mmo : getConfig().getMetadataList()) {
             String identifier = null;
             if (mmo.getNormdataHeaderName() != null) {
-                identifier = rowMap.get(headerOrder.get(mmo.getNormdataHeaderName()));
+                identifier = data.getValue(mmo.getNormdataHeaderName());
             }
 
-            String value = rowMap.get(headerOrder.get(mmo.getHeaderName()));
+            String value = mmo.getRule().getValue(data);
             if (StringUtils.isNotBlank(mmo.getRulesetName()) && StringUtils.isNotBlank(value)) {
                 // get a list of existing Metadata objects
                 List<Metadata> existingMetadata = getExistingMetadata(mmo, logical, anchor);
@@ -751,18 +713,18 @@ public class NLIExcelImport {
      * @throws IOException If an error occured copying source files
      * @throws ImportException If no image folder was found
      */
-    private Path copyImagesFromSourceToTempFolder(ImportObject io, String fileName, HotfolderFolder hff, Map<String, Integer> headerOrder,
-            Map<Integer, String> rowMap) throws IOException, ImportException {
+    private Path copyImagesFromSourceToTempFolder(ImportObject io, String fileName, HotfolderFolder hff, IRecordDataObject data)
+            throws IOException, ImportException {
 
-        Path imageSourceFolder = getImageFolderPath(hff, headerOrder, rowMap);
+        Path imageSourceFolder = getImageFolderPath(hff, data);
 
         if (storageProvider.isFileExists(imageSourceFolder) && storageProvider.isDirectory(imageSourceFolder)) {
             String foldername = fileName.replace(".xml", "");
-            String folderNameRule = ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
+            String folderNameRule = getMasterImageDirectoryName();
             folderNameRule = folderNameRule.replace("{processtitle}", io.getProcessTitle());
 
             Path path = Paths.get(foldername, "images", folderNameRule);
-            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            String fileNamePrefix = getConfig().getImageNamePrefix().getValue(data);
             copyImagesToFolder(imageSourceFolder, path.toString(), fileNamePrefix);
             // check if there are any files copied to path, and if not, return null to signify this
             if (storageProvider.listFiles(path.toString()).isEmpty()) {
@@ -776,6 +738,14 @@ public class NLIExcelImport {
 
     }
 
+    public String getMasterImageDirectoryName() {
+        try {
+            return ConfigurationHelper.getInstance().getProcessImagesMasterDirectoryName();
+        } catch (NullPointerException e) {
+            return "{processtitle}_master";
+        }
+    }
+
     /**
      * 
      * @param hff HotfolderFolder
@@ -784,24 +754,13 @@ public class NLIExcelImport {
      * @return Path to the image folder
      * @throws ImportException if no image folder is set in the excel file
      */
-    private Path getImageFolderPath(HotfolderFolder hff, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) throws ImportException {
-        String imageFolder = getCellValue(config.getProcessHeaderName(), headerOrder, rowMap);
+    private Path getImageFolderPath(HotfolderFolder hff, IRecordDataObject data) throws ImportException {
+        String imageFolder = getConfig().getImportFolder().getValue(data);
         if (StringUtils.isBlank(imageFolder)) {
             throw new ImportException("No imageFolder in excel File");
         }
 
         return Paths.get(hff.getProjectFolder().toString(), imageFolder);
-    }
-
-    /**
-     * 
-     * @param column
-     * @param headerOrder map between the header as a string and its order as an integer
-     * @param rowMap map between the row number as an integer and the row as a string
-     * @return the value of the cell
-     */
-    private String getCellValue(String column, Map<String, Integer> headerOrder, Map<Integer, String> rowMap) {
-        return rowMap.get(headerOrder.get(column));
     }
 
     /**
@@ -813,8 +772,7 @@ public class NLIExcelImport {
      * @param headerOrder map between the header as a string and its order as an integer
      * @param rowMap map between the row number as an integer and the row as a string
      */
-    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, Map<String, Integer> headerOrder,
-            Map<Integer, String> rowMap) {
+    private void replaceExistingProcess(ImportObject io, Fileformat ff, Path importFolder, IRecordDataObject data) {
 
         Process existingProcess = ProcessManager.getProcessByExactTitle(io.getProcessTitle());
         if (existingProcess == null) {
@@ -823,7 +781,7 @@ public class NLIExcelImport {
 
         // otherwise, try to replace the existing process
         try {
-            String fileNamePrefix = getCellValue(config.getImagesHeaderName(), headerOrder, rowMap);
+            String fileNamePrefix = getConfig().getImageNamePrefix().getValue(data);
             writeToExistingProcess(ff, importFolder, existingProcess, fileNamePrefix);
             io.setErrorMessage("Process name already exists. Replaced data in pocess " + existingProcess.getTitel());
             io.setImportReturnValue(ImportReturnValue.DataAllreadyExists);
@@ -922,7 +880,7 @@ public class NLIExcelImport {
                 storageProvider.createDirectories(targetDir);
                 storageProvider.copyDirectory(currentData, targetDir);
 
-            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(ALLOWED_FILE_SUFFIX_PATTERN)) {
+            } else if (!fileName.startsWith(".") && fileName.toLowerCase().matches(getConfig().getAllowedFilenames())) {
                 // valid files
                 String newFilename = fileName;
                 if (StringUtils.isNotBlank(fileNamePrefix)) {
@@ -1013,6 +971,7 @@ public class NLIExcelImport {
 
     /**
      * 
+     * @param hff
      * @param recordList a list of Record objects
      * @param idColumn
      * @param headerOrder map between the header as a string and its order as an integer
@@ -1020,7 +979,9 @@ public class NLIExcelImport {
      * @param rowCounter
      * @return rowCounter
      */
-    private int addRowProcess(List<Record> recordList, String idColumn, Map<String, Integer> headerOrder, Iterator<Row> rowIterator, int rowCounter) {
+    private int addRowProcess(HotfolderFolder hff, List<HotfolderRecord> recordList, Map<String, Integer> headerOrder,
+            Iterator<Row> rowIterator,
+            int rowCounter) {
 
         Map<Integer, String> map = new HashMap<>();
         Row row = rowIterator.next();
@@ -1056,13 +1017,10 @@ public class NLIExcelImport {
 
         for (String v : map.values()) {
             if (v != null && !v.isEmpty()) {
-                Record r = new Record();
-                r.setId(map.get(headerOrder.get(idColumn)));
-                List<Map<?, ?>> list = new ArrayList<>();
-                list.add(headerOrder);
-                list.add(map);
-
-                r.setObject(list);
+                HotfolderRecord r = new HotfolderRecord();
+                ExcelDataObject data = new ExcelDataObject(headerOrder, map, getHotfolderValues(hff, null));
+                r.setId(this.excelConfig.getProcessIdentifier().getValue(data));
+                r.setObject(data);
                 recordList.add(r);
                 break;
             }
@@ -1107,8 +1065,7 @@ public class NLIExcelImport {
         //            e1.printStackTrace();
         //        }
 
-        SubnodeConfiguration myconfig = getTemplateConfig(workflowTitle);
-
+        SubnodeConfiguration myconfig = pluginConfig.getTemplateConfig(workflowTitle);
         if (myconfig != null) {
             replaceExisting = myconfig.getBoolean("replaceExistingProcesses", false);
             moveFiles = myconfig.getBoolean("moveFiles", false);
@@ -1117,25 +1074,25 @@ public class NLIExcelImport {
         return new NLIExcelConfig(myconfig);
     }
 
-    /**
-     * 
-     * @param workflowTitle
-     * @return
-     */
-    public static SubnodeConfiguration getTemplateConfig(String workflowTitle) {
-        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
+    private NLIExcelConfig getConfig() {
+        return this.excelConfig;
+    }
 
-        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
-        xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-
-        SubnodeConfiguration myconfig = null;
-        try {
-            myconfig = xmlConfig.configurationAt("//config[./template = '" + workflowTitle + "']");
-        } catch (IllegalArgumentException e) {
-            myconfig = xmlConfig.configurationAt("//config[./template = '*']");
+    public List<HotfolderRecord> generateRecordsFromFolder(HotfolderFolder hff) throws IOException {
+        try (Stream<Path> folderStream = Files.list(hff.getProjectFolder()).filter(Files::isDirectory)) {
+            return folderStream.map(folder -> {
+                String folderName = folder.getFileName().toString();
+                HotfolderRecord record = new HotfolderRecord();
+                record.setId(folderName);
+                record.setDataObject(new RecordDataObject(getHotfolderValues(hff, folder)));
+                return record;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
         }
+    }
 
-        return myconfig;
+    public Map<String, String> getHotfolderValues(HotfolderFolder hff, Path folder) {
+        return Map.of("project", hff.getProjectFolder().getFileName().toString(), "template",
+                hff.getTemplateName(), "folder", Optional.ofNullable(folder).map(Path::getFileName).map(Path::toString).orElse(""));
     }
 
 }

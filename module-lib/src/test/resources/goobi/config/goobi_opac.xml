@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opacCatalogues>
+  <doctypes>
+    <type isContainedWork="false" isMultiVolume="false" isPeriodical="false" rulesetType="Monograph" tifHeaderType="GoobiBook" title="GoobiBook">
+	<label language="de">GoobiBook</label>
+	<label language="en">GoobiBook</label>
+	<mapping>Oa</mapping>
+	<mapping>Ob</mapping>
+	<mapping>Ab</mapping>
+	<mapping>Ha</mapping>
+	<mapping>Oj</mapping>
+	<mapping>Aj</mapping>
+	<mapping>Oc</mapping>
+	<mapping>Ac</mapping>
+	<mapping>Af</mapping>
+	<mapping>Of</mapping>
+	<mapping>Ad</mapping>
+	<mapping>Od</mapping>
+	<mapping>Av</mapping>
+	<mapping>Ov</mapping>
+	<mapping>As</mapping>
+	<mapping>Os</mapping>
+	<mapping>Ma</mapping>
+        <mapping>Ka</mapping>
+        <mapping>Mc</mapping>
+        <mapping>Mf</mapping>
+    </type>
+    <type isContainedWork="false" isMultiVolume="false" isPeriodical="false" rulesetType="Archives" tifHeaderType="archives" title="archives">
+	<label language="de">Archive</label>
+	<label language="en">archives</label>
+	<!--mapping>Oa</mapping>
+	<mapping>Ob</mapping>
+	<mapping>Ab</mapping>
+	<mapping>Ha</mapping>
+	<mapping>Oj</mapping>
+	<mapping>Aj</mapping>
+	<mapping>Oc</mapping>
+	<mapping>Ac</mapping>
+	<mapping>Af</mapping>
+	<mapping>Of</mapping>
+	<mapping>Ad</mapping>
+	<mapping>Od</mapping>
+	<mapping>Av</mapping>
+	<mapping>Ov</mapping>
+	<mapping>As</mapping>
+	<mapping>Os</mapping>
+	<mapping>Ma</mapping-->
+    </type>
+    <type isContainedWork="false" isMultiVolume="false" isPeriodical="true" rulesetType="Newspaper" tifHeaderType="Newspaper" title="Newspaper" rulesetChildType="NewspaperIssue">
+      <label language="de">Zeitung</label>
+      <label language="en">Newspaper</label>
+      <mapping>Ab</mapping>
+      <mapping>Ob</mapping>
+    </type>
+
+ </doctypes>
+
+  <!-- Name nicht ändern, wird vom GoogleBooks workflow genau so benutzt! -->
+<!-- von 30 auf 28 geändert -->
+   <catalogue title="NLI Alma OLD">
+   <config address="opac.intranda.com" database="30"
+           description="Online catalogue of the National Library of Israel"
+           iktlist="IKTLIST.xml"
+           port="80" />
+   <searchFields>
+       <searchField label="Barcode" value="1007"/>
+       <searchField label="Identifier" value="12"/>
+       <searchField label="ISBN" value="7"/>
+       <searchField label="ISSN" value="8"/>
+   </searchFields>
+   <beautify>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Hau" />
+     </setvalue>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Afu" />
+     </setvalue>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Mau" />
+     </setvalue>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Mcu" />
+     </setvalue>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Mfu" />
+     </setvalue>
+     <setvalue tag="002@" subtag="0" value="Oa">
+       <condition tag="002@" subtag="0" value="Hcu" />
+     </setvalue>
+
+
+   </beautify>
+ </catalogue>
+
+
+<catalogue title="NLI Alma">
+  <config address="http://192.168.57.52:8080/AlmaWebServices/bib/getBib/{identifier}?expand=None&amp;format=json&amp;view=full" database="1"
+    ucnf="XPNOFF=1" description="JSON-MARC Opac API" iktlist="IKTLIST.xml" port="80"
+    opacType="NLI-MARC" />
+</catalogue>
+
+<catalogue title="NLI Test">
+  <config address="https://nli.alma.exlibrisgroup.com/view/sru/972NNL_INST" database="1"
+    ucnf="XPNOFF=1" description="NLI marc import" iktlist="IKTLIST.xml" port="80"
+    opacType="ALMA-MARC" />
+
+  <searchFields>
+    <searchField label="MMS ID" value="mms_id" />
+    <searchField label="ISBN" value="alma.isbn" />
+    <searchField label="ISSN" value="alma.issn" />
+  </searchFields>
+</catalogue>
+
+
+
+ <!--<catalogue title="NLI">
+    <config address="opac.intranda.com" database="26"
+            description="Online catalogue of the National Library of Israel"
+            iktlist="IKTLIST.xml"
+            port="80" />
+    <searchFields>
+        <searchField label="Barcode" value="1033"/>
+        <searchField label="Identifier" value="12"/>
+        <searchField label="ISBN" value="7"/>
+        <searchField label="ISSN" value="8"/>
+    </searchFields>
+    <beautify>
+      <setvalue tag="002@" subtag="0" value="Oa">
+        <condition tag="002@" subtag="0" value="Hau" />
+      </setvalue>
+    </beautify>
+  </catalogue>-->
+
+  <!--<catalogue title="NLI Test">
+    <config address="opac.intranda.com" database="26"
+            description="Online catalogue of the National Library of Israel"
+            iktlist="IKTLIST.xml"
+            port="80" />
+    <searchFields>
+        <searchField label="Barcode" value="1033"/>
+        <searchField label="Identifier" value="12"/>
+        <searchField label="ISBN" value="7"/>
+        <searchField label="ISSN" value="8"/>
+    </searchFields>
+    <beautify>
+      <setvalue tag="002@" subtag="0" value="Oa">
+        <condition tag="002@" subtag="0" value="Hau" />
+      </setvalue>
+    </beautify>
+  </catalogue>-->
+
+</opacCatalogues>
