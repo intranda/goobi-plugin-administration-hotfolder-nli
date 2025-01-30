@@ -9,6 +9,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.gson.Gson;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.log.GUIImportResult;
@@ -16,7 +18,6 @@ import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
-import spark.utils.StringUtils;
 
 @Log4j2
 public class CSVGenerator {
@@ -60,7 +61,6 @@ public class CSVGenerator {
             log.error("Error trying to save the csv file: {}", e);
         }
     }
-
 
     private String generateImportResultString(GUIImportResult[] importResult) {
         StringBuilder resultBuilder = new StringBuilder();
@@ -127,6 +127,5 @@ public class CSVGenerator {
 
         return resultsString;
     }
-
 
 }

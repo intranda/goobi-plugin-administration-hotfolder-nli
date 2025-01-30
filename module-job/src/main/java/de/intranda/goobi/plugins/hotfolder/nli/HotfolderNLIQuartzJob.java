@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.goobi.production.flow.jobs.AbstractGoobiJob;
 import org.goobi.production.importer.ImportObject;
 
@@ -33,7 +34,6 @@ import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import lombok.extern.log4j.Log4j2;
-import spark.utils.StringUtils;
 
 @Log4j2
 public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
@@ -250,7 +250,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         // lastResults has form [[{},{}],\n[{},{}],\n[{},{}]]
         // get rid of the first [ and the last ]
         String results = lastResults.substring(lastResults.indexOf("[") + 1, lastResults.lastIndexOf("]"));
-        // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...], 
+        // split results into an array of arrays formed like [GUIImportResult, GUIImportResult, GUIImportResult, ...],
         // where each array represents a log entry of one previous run
         String[] resultsArray = results.split(",\\n");
         LocalDateTime now = LocalDateTime.now();

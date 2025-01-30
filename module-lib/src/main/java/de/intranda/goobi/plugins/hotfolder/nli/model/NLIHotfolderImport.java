@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.goobi.beans.Step;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.LogType;
@@ -26,7 +27,6 @@ import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import lombok.extern.log4j.Log4j2;
-import spark.utils.StringUtils;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.Fileformat;
