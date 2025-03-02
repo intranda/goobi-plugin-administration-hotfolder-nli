@@ -17,9 +17,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.faces.context.FacesContext;
-import javax.servlet.http.HttpServletResponse;
-
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.plugin.interfaces.IAdministrationPlugin;
 
@@ -28,16 +25,21 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.intranda.goobi.plugins.hotfolder.nli.model.CSVGenerator;
-import de.intranda.goobi.plugins.hotfolder.nli.model.GUIImportResult;
-import de.intranda.goobi.plugins.hotfolder.nli.model.QuartzJobLog;
+import de.intranda.goobi.plugins.hotfolder.nli.model.log.GUIImportResult;
+import de.intranda.goobi.plugins.hotfolder.nli.model.log.QuartzJobLog;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
+import jakarta.faces.context.FacesContext;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
 
+/**
+ * This plugin provides an overview over the state of the hotfolder import and reports about the last imports. It is not part of the actual hotfolder
+ * import but only serves monitoring purposes
+ */
 @PluginImplementation
 @Log4j2
 public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
@@ -89,7 +91,6 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
      * Constructor
      */
     public HotfolderNliAdministrationPlugin() {
-        log.info("NLI hotfolder admnistration plugin started");
         hotfolderPath = Paths.get(ConfigPlugins.getPluginConfig(title).getString("hotfolderPath"));
     }
 

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bibs total_record_count="1">
+	<bib>
+		<mms_id>990037838120205171</mms_id>
+		<record_format>marc21</record_format>
+		<linked_record_id />
+		<title>ידיעות ראשון : באר-יעקב ויישובי הסביבה.</title>
+		<author>ידיעות תקשורת (רשת מקומונים)</author>
+		<network_numbers>
+			<network_number>(IsJJNL)003783812NNL01-Aleph</network_number>
+		</network_numbers>
+		<place_of_publication>נס ציונה :</place_of_publication>
+		<date_of_publication>2007-.</date_of_publication>
+		<publisher_const>ידיעות תקשורת,</publisher_const>
+		<holdings
+			link="https://api-eu.hosted.exlibrisgroup.com/almaws/v1/bibs/990037838120205171/holdings" />
+		<created_by>import</created_by>
+		<created_date>2019-11-04Z</created_date>
+		<last_modified_by>exl_api</last_modified_by>
+		<last_modified_date>2024-04-17Z</last_modified_date>
+		<suppress_from_publishing>false</suppress_from_publishing>
+		<suppress_from_external_search>false</suppress_from_external_search>
+		<suppress_from_metadoor>false</suppress_from_metadoor>
+		<rank>68</rank>
+		<sync_with_oclc>BIBS</sync_with_oclc>
+		<sync_with_libraries_australia>NONE</sync_with_libraries_australia>
+		<originating_system>OTHER</originating_system>
+		<originating_system_id>003783812-NNL01</originating_system_id>
+		<cataloging_level desc="NLI Authorities">50</cataloging_level>
+		<brief_level desc="01">01</brief_level>
+		<record>
+			<leader>03589nas a2200481 i 4500</leader>
+			<controlfield tag="001">990037838120205171</controlfield>
+			<controlfield tag="005">20240417115333.0</controlfield>
+			<controlfield tag="008">080214c20079999is wr poo 0 h0heb d
+			</controlfield>
+			<datafield ind1=" " ind2=" " tag="035">
+				<subfield code="a">(IsJJNL)003783812NNL01-Aleph</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="040">
+				<subfield code="b">heb</subfield>
+				<subfield code="e">rda</subfield>
+			</datafield>
+			<datafield ind1="0" ind2=" " tag="041">
+				<subfield code="a">heb</subfield>
+			</datafield>
+			<datafield ind1="0" ind2="0" tag="245">
+				<subfield code="a">ידיעות ראשון :</subfield>
+				<subfield code="b">באר-יעקב ויישובי הסביבה.</subfield>
+			</datafield>
+			<datafield ind1=" " ind2="1" tag="264">
+				<subfield code="a">נס ציונה :</subfield>
+				<subfield code="b">ידיעות תקשורת,</subfield>
+				<subfield code="c">2007-.</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="300">
+				<subfield code="a">1 משאב אלקטרוני.</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="310">
+				<subfield code="a">weekly</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="310">
+				<subfield code="a">שבועון.</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="336">
+				<subfield code="a">text</subfield>
+				<subfield code="b">txt</subfield>
+				<subfield code="2">rdacontent</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="337">
+				<subfield code="a">computer</subfield>
+				<subfield code="b">c</subfield>
+				<subfield code="2">rdamedia</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="338">
+				<subfield code="a">online resource</subfield>
+				<subfield code="b">cr</subfield>
+				<subfield code="2">rdacarrier</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="347">
+				<subfield code="a">text file</subfield>
+				<subfield code="b">PDF</subfield>
+				<subfield code="c">rda</subfield>
+			</datafield>
+			<datafield ind1="0" ind2=" " tag="362">
+				<subfield code="a">(כז בתמוז תשס"ז 13.7.2007)-</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="588">
+				<subfield code="a">קוטלג על פי גליון מס' 1210 (3.1.2014)
+				</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="500">
+				<subfield code="a">הגליונות המוקדמים בדפוס או בזיעור.
+				</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="590">
+				<subfield code="a">veridian publication code: yediotrishon
+				</subfield>
+			</datafield>
+			<datafield ind1=" " ind2="7" tag="651">
+				<subfield code="a">Rishon LeTsiyon (Israel)</subfield>
+				<subfield code="x">Description and travel</subfield>
+				<subfield code="9">lat</subfield>
+				<subfield code="2">NLI</subfield>
+				<subfield code="8">PreferredLanguageHeading</subfield>
+			</datafield>
+			<datafield ind1=" " ind2="7" tag="651">
+				<subfield code="a">Rishon LeTsiyon (Israel)</subfield>
+				<subfield code="x">History</subfield>
+				<subfield code="9">lat</subfield>
+				<subfield code="2">NLI</subfield>
+				<subfield code="8">PreferredLanguageHeading</subfield>
+			</datafield>
+			<datafield ind1="0" ind2="0" tag="780">
+				<subfield code="i">המשכו של:</subfield>
+				<subfield code="t">במקום.</subfield>
+			</datafield>
+			<datafield ind1="2" ind2=" " tag="710">
+				<subfield code="a">ידיעות תקשורת (רשת מקומונים)</subfield>
+				<subfield code="9">heb</subfield>
+				<subfield code="e">גוף מנפיק</subfield>
+				<subfield code="8">PreferredLanguageHeading</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="751">
+				<subfield code="a">Nes Tsiyona (Israel)</subfield>
+				<subfield code="9">lat</subfield>
+				<subfield code="e">place of publication</subfield>
+				<subfield code="8">PreferredLanguageHeading</subfield>
+			</datafield>
+			<datafield ind1="4" ind2=" " tag="856">
+				<subfield code="z">לגרסה דיגיטלית (מתוך הספרייה בלבד)
+				</subfield>
+				<subfield code="u">http://primo.nli.org.il/primo_library/libweb/action/dlSearch.do?dscnt=1&amp;loc=local,scope:(NNL_Rosetta_Press)&amp;query=lsr03,contains,003783812&amp;srt=date&amp;viewas=grid&amp;indx=1&amp;bulkSize=30&amp;vid=NLI_Daily_Press&amp;institution=NNL
+				</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="903">
+				<subfield code="a">Two users;</subfield>
+				<subfield code="b">000000022</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="906">
+				<subfield code="a">DIG</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="906">
+				<subfield code="a">GEN</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="906">
+				<subfield code="a">QRS</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="921">
+				<subfield code="a">enh 201412</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="933">
+				<subfield code="a">jat 201611</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="939">
+				<subfield code="a">איסור העתקה</subfield>
+				<subfield code="u">http://web.nli.org.il/sites/NLI/Hebrew/library/items-terms-of-use/Pages/nli-copying-prohibited.aspx
+				</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="943">
+				<subfield code="a">1 משאב אלקטרוני.</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="952">
+				<subfield code="a">In copyright; No contract</subfield>
+				<subfield code="b">Publication delivered under Israel Book Law
+				</subfield>
+				<subfield code="c">Ariel Lock 20171129</subfield>
+				<subfield code="d">הסבה אוטומטית</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="964">
+				<subfield code="b">מכ</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="995">
+				<subfield code="a">1097170</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="999">
+				<subfield code="a">SER</subfield>
+			</datafield>
+			<datafield ind1=" " ind2=" " tag="999">
+				<subfield code="a">EJOURNAL</subfield>
+			</datafield>
+		</record>
+	</bib>
+</bibs>
