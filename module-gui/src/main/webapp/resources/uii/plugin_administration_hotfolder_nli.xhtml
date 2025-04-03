@@ -5,7 +5,7 @@
     xmlns:h="http://xmlns.jcp.org/jsf/html"
     xmlns:f="http://xmlns.jcp.org/jsf/core"
     xmlns:jsf="http://xmlns.jcp.org/jsf"
-    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/compositesPG"
+    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
     xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
     xmlns:p="http://primefaces.org/ui">
 
@@ -34,11 +34,11 @@
                                     boxType="action"
                                     boxTitle="false"
                                     boxForm="false">
-        
+
                                     <intranda:boxTitle
                                         title="#{msgs[AdministrationForm.administrationPlugin.title]}"
                                         icon="fa-plug">
-        
+
                                         <div class="actions d-flex">
                                             <button
                                                 jsf:rendered="#{AdministrationForm.administrationPlugin.paused}"
@@ -49,7 +49,7 @@
                                                 title="#{msgs.plugin_administration_nli_hotfolder_resumework}">
                                                 <i class="fa fa-pause"></i>
                                             </button>
-        
+
                                             <button
                                                 jsf:rendered="#{not AdministrationForm.administrationPlugin.paused}"
                                                 jsf:id="buttonLeft2"
@@ -59,12 +59,12 @@
                                                 title="#{msgs.plugin_administration_nli_hotfolder_pausework}">
                                                 <i class="fa fa-play"></i>
                                             </button>
-        
+
                                         </div>
                                     </intranda:boxTitle>
-        
+
                                     <div class="p-4">
-        
+
                                         <table class="table table-borderless">
                                             <tr>
                                                 <td>
@@ -138,7 +138,7 @@
                                                     </button>
                                                 </td>
                                             </tr>
-        
+
                                             <!-- ADDITIONAL ROWS FOR IMPORTING MODE -->
                                             <ui:fragment
                                                 rendered="#{not AdministrationForm.administrationPlugin.paused and AdministrationForm.administrationPlugin.running}">
@@ -165,10 +165,10 @@
                                                 </tr>
                                             </ui:fragment>
                                             <!-- // ADDITIONAL ROWS FOR IMPORTING MODE -->
-        
+
                                         </table>
                                     </div>
-        
+
                                 </intranda:box>
                             </div>
                             <!-- // BOX ON THE LEFT WITH STATUS -->
@@ -179,16 +179,16 @@
                                     boxType="neutral"
                                     boxTitle="false"
                                     boxForm="false">
-    
+
                                     <intranda:boxTitle title="#{msgs.plugin_administration_nli_hotfolder_logs}">
-    
+
                                         <div class="actions d-flex">
-                                        
-                                            <h:outputText 
+
+                                            <h:outputText
                                                 styleClass="me-3 mt-2"
                                                 rendered="#{AdministrationForm.administrationPlugin.listOfResults.size() ne 0}"
                                                 value="#{AdministrationForm.administrationPlugin.logNumber + 1} / #{AdministrationForm.administrationPlugin.listOfResults.size()}"/>
-                                            
+
                                             <!-- BUTTON TO PREVIOUS LOG -->
                                             <button
                                                 jsf:id="previousLogButton"
@@ -207,23 +207,23 @@
                                                 title="#{msgs.plugin_administration_nli_hotfolder_nextEntry}">
                                                 <i class="fa fa-angle-right"></i>
                                             </button>
-    
+
                                         </div>
                                     </intranda:boxTitle>
-    
+
                                     <div class="p-4">
-                                    
+
                                         <h:outputText
                                             styleClass="alert alert-danger d-block"
                                             rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() lt 1}"
                                             value="#{msgs.plugin_administration_nli_hotfolder_noLogEntriesAvailable}"/>
-                                                            
+
                                         <ui:fragment rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() gt 0}">
-                                           
+
                                             <ui:repeat
                                                 var="folder"
                                                 value="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet()}">
-                                                
+
                                                 <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
                                                 <div>
                                                     <button
@@ -233,12 +233,12 @@
                                                         <span>
                                                         <h:outputText value="#{folder}"/>
                                                         </span>
-                                                        
+
                                                     </button>
                                                     <br/>
                                                 </div>
                                                 <!-- // Template name / Hotfolder name and button -->
-                                                
+
                                                 <!-- Table of error logs from the last run -->
                                                 <table
                                                     class="gw-table table table-bordered table-hover border-end border-start"
@@ -263,17 +263,17 @@
                                                     </tbody>
                                                 </table>
                                                 <!-- // Table -->
-                
+
                                             </ui:repeat>
-                                        
+
                                         </ui:fragment>
-                                    
-                                        
+
+
                                     </div>
                                 </intranda:box>
                             </div>
                             <!-- // BOX ON THE RIGHT WITH LOGS -->
-                        
+
                         </div>
                     </h:form>
                 </ui:fragment>
