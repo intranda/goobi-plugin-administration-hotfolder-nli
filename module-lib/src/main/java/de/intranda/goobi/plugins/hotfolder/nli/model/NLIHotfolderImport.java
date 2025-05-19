@@ -14,6 +14,7 @@ import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderScheduler;
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
@@ -225,11 +226,16 @@ public class NLIHotfolderImport {
             NLIExcelImport excelImport) {
         int lineNumber = 1;
         List<ImportObject> imports = new ArrayList<>();
+        HotfolderScheduler scheduler = new HotfolderScheduler(pluginConfig);
         for (HotfolderRecord record : records) {
             lineNumber++;
             ImportObject io = prepareImportObject(record, hff, excelImport);
             if (io != null) {
                 imports.add(io);
+            }
+            if (!scheduler.shouldRunNow(hff)) {
+                log.debug("canceling import of " + hff + " since the scheduled timeframe elapsed");
+                break;
             }
         }
         return imports;

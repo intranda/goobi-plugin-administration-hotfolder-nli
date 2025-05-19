@@ -249,4 +249,9 @@ public class HotfolderFolder {
         return OWNER_FILE_EXTENSION;
     }
 
+    @Override
+    public String toString() {
+        return "Hotfolder for %s (%s)".formatted(this.templateName, this.projectFolder);
+    }
+
 }
