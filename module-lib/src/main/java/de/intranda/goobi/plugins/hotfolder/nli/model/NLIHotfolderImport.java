@@ -1,7 +1,6 @@
 package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,9 +54,8 @@ public class NLIHotfolderImport {
         this.configOpac = configOpac;
     }
 
-    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException, ImportException {
+    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws ImportException {
         if (hff.getImportFile() == null) {
-            List<Path> processFolders = hff.getCurrentProcessFolders(pluginConfig.getMinutesOfInactivity());
             NLIExcelConfig templateConfig = new NLIExcelConfig(pluginConfig.getTemplateConfig(hff.getTemplateName()));
             if (!templateConfig.isRequireImportFile()) {
                 //otherwise:
@@ -78,7 +76,7 @@ public class NLIHotfolderImport {
                     return List.of(io);
                 }
             } else {
-                log.trace("No importFile: {}, processFolders.size(): {}", hff.getImportFile(), processFolders.size());
+                log.trace("Cannot import process folder {}: No importFile", hff.getImportFile());
                 return Collections.emptyList();
             }
         } else {

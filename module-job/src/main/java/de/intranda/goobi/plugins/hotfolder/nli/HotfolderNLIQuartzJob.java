@@ -146,9 +146,6 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
 
             try {
                 imports.addAll(importer.createProcessesFromHotfolder(hff));
-            } catch (IOException e) {
-                log.info("NLI hotfolder - error: " + e.getMessage());
-                throw e;
             } catch (NullPointerException | IllegalStateException e) {
                 log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
             } catch (ImportException e) {

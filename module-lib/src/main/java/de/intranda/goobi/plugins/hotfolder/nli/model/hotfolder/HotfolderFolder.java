@@ -94,18 +94,22 @@ public class HotfolderFolder {
      * @return a list of folders' paths that is ready for the import
      * @throws IOException
      */
-    public List<Path> getCurrentProcessFolders(int minutesOfInactivity) throws IOException {
+    public List<Path> getCurrentProcessFolders(int minutesOfInactivity) {
         List<Path> lstFoldersToImport = new ArrayList<>();
 
         for (Path barcodePath : lstProcessFolders) {
-            log.trace("looking at {}", barcodePath);
-            Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(barcodePath));
-            Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesOfInactivity));
-            if (minutesOfInactivity == 0 || lastModified.isBefore(thirtyMinutesAgo)) {
-                log.trace("Adding process folder {} to list", barcodePath);
-                lstFoldersToImport.add(barcodePath);
-            } else {
-                log.trace("Not adding process folder {}. Last modified time {} is not before {}", barcodePath, lastModified, thirtyMinutesAgo);
+            try {
+                log.trace("looking at {}", barcodePath);
+                Instant lastModified = Instant.ofEpochMilli(storageProvider.getLastModifiedDate(barcodePath));
+                Instant thirtyMinutesAgo = Instant.now().minus(Duration.ofMinutes(minutesOfInactivity));
+                if (minutesOfInactivity == 0 || lastModified.isBefore(thirtyMinutesAgo)) {
+                    log.trace("Adding process folder {} to list", barcodePath);
+                    lstFoldersToImport.add(barcodePath);
+                } else {
+                    log.trace("Not adding process folder {}. Last modified time {} is not before {}", barcodePath, lastModified, thirtyMinutesAgo);
+                }
+            } catch (IOException e) {
+                log.warn("Unable to check modification date of hotfolder {}: {}", barcodePath, e.toString());
             }
         }
 
