@@ -4,14 +4,12 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.configuration.SubnodeConfiguration;
-
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderScheduler;
 import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.StorageProviderInterface;
 import lombok.extern.log4j.Log4j2;
@@ -31,20 +29,17 @@ public class HotfolderParser {
 
     public List<HotfolderFolder> getImportFolders(Path hotfolderPath, HotfolderPluginConfig config) throws IOException {
         List<HotfolderFolder> importFolders = traverseHotfolder(hotfolderPath);
+        HotfolderScheduler scheduler = new HotfolderScheduler(config);
         log.info("NLI hotfolder: Traversed import folders. Found " + importFolders.size() + " folders");
         // check schedule to determine whether templates should be ignored or not
         List<String> ignoredTemplates = new ArrayList<>();
         importFolders = importFolders.stream().filter(folder -> {
-            SubnodeConfiguration templateConfig = config.getTemplateConfig(folder.getTemplateName());
-            Integer startTime = templateConfig.getInt("schedule/start", 0);
-            Integer endTime = templateConfig.getInt("schedule/end", 0);
-            int currentHour = LocalDateTime.now().getHour();
-            boolean run = shouldRunAtTime(currentHour, startTime, endTime);
-            //            boolean run = true; // use this line instead if a quick test via "regular tasks" is needed // NOSONAR
-            if (!run) {
+            if (!scheduler.shouldRunNow(folder)) {
                 ignoredTemplates.add(folder.getTemplateName());
+                return false;
+            } else {
+                return true;
             }
-            return run;
         }).collect(Collectors.toList());
         // report all ignored templates
         ignoredTemplates.stream()
@@ -85,32 +80,6 @@ public class HotfolderParser {
             }
         }
         return stableBarcodeFolders;
-    }
-
-    /**
-     * returns true for the following cases: 1). 0 < startTime <= currentHour < endTime 2). 0 < endTime <= startTime <= currentHour 3). 0 <
-     * currentHour < endTime <= startTime 4). endTime <= 0 < startTime <= currentHour 5). startTime <= 0 < currentHour < endTime 6). startTime <= 0 &&
-     * endTime <= 0
-     * 
-     * @param currentHour
-     * @param startTime
-     * @param endTime
-     * @return
-     */
-    private boolean shouldRunAtTime(int currentHour, Integer startTime, Integer endTime) {
-        if (startTime > 0 && endTime > 0) {
-            if (startTime < endTime) {
-                return currentHour >= startTime && currentHour < endTime;
-            } else {
-                return currentHour >= startTime || currentHour < endTime;
-            }
-        } else if (startTime > 0) {
-            return currentHour >= startTime;
-        } else if (endTime > 0) {
-            return currentHour < endTime;
-        } else {
-            return true;
-        }
     }
 
 }

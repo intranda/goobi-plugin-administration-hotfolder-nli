@@ -335,7 +335,7 @@ public class NLIExcelImport {
             storageProvider.deleteDir(imageSourceFolder);
             return false;
         } catch (ImportException e) {
-            log.debug("Cannot import " + imageSourceFolder + ": " + e.getMessage());
+            log.trace("Cannot import " + imageSourceFolder + ": " + e.getMessage());
             return false;
         }
     }
@@ -1054,16 +1054,6 @@ public class NLIExcelImport {
      * @return
      */
     private NLIExcelConfig loadConfig(String workflowTitle) {
-
-        //        //TODO: this is for testing only
-        //        XMLConfiguration xmlConfig = new XMLConfiguration();
-        //        xmlConfig.setDelimiterParsingDisabled(true);
-        //        try {
-        //            xmlConfig.load("/opt/digiverso/goobi/config/plugin_intranda_administration_hotfolder_nli.xml");
-        //        } catch (ConfigurationException e1) {
-        //            // TODO Auto-generated catch block
-        //            e1.printStackTrace();
-        //        }
 
         SubnodeConfiguration myconfig = pluginConfig.getTemplateConfig(workflowTitle);
         if (myconfig != null) {

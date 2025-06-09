@@ -1,7 +1,6 @@
 package de.intranda.goobi.plugins.hotfolder.nli.model;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +13,7 @@ import org.goobi.production.flow.helper.JobCreation;
 import org.goobi.production.importer.ImportObject;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
+import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderScheduler;
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.NLIExcelConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
@@ -54,9 +54,8 @@ public class NLIHotfolderImport {
         this.configOpac = configOpac;
     }
 
-    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws IOException, ImportException {
+    public List<ImportObject> createProcessesFromHotfolder(HotfolderFolder hff) throws ImportException {
         if (hff.getImportFile() == null) {
-            List<Path> processFolders = hff.getCurrentProcessFolders(pluginConfig.getMinutesOfInactivity());
             NLIExcelConfig templateConfig = new NLIExcelConfig(pluginConfig.getTemplateConfig(hff.getTemplateName()));
             if (!templateConfig.isRequireImportFile()) {
                 //otherwise:
@@ -77,7 +76,7 @@ public class NLIHotfolderImport {
                     return List.of(io);
                 }
             } else {
-                log.trace("No importFile: {}, processFolders.size(): {}", hff.getImportFile(), processFolders.size());
+                log.trace("Cannot import process folder {}: No importFile", hff.getImportFile());
                 return Collections.emptyList();
             }
         } else {
@@ -225,11 +224,16 @@ public class NLIHotfolderImport {
             NLIExcelImport excelImport) {
         int lineNumber = 1;
         List<ImportObject> imports = new ArrayList<>();
+        HotfolderScheduler scheduler = new HotfolderScheduler(pluginConfig);
         for (HotfolderRecord record : records) {
             lineNumber++;
             ImportObject io = prepareImportObject(record, hff, excelImport);
             if (io != null) {
                 imports.add(io);
+            }
+            if (!scheduler.shouldRunNow(hff)) {
+                log.debug("canceling import of " + hff + " since the scheduled timeframe elapsed");
+                break;
             }
         }
         return imports;
