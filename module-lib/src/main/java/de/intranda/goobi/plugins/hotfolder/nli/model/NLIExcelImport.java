@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +54,7 @@ import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.EmptyFolderImpor
 import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.sub.goobi.config.ConfigurationHelper;
+import de.sub.goobi.helper.NIOFileUtils;
 import de.sub.goobi.helper.StorageProviderInterface;
 import de.sub.goobi.helper.exceptions.SwapException;
 import de.sub.goobi.persistence.managers.ProcessManager;
@@ -149,6 +151,11 @@ public class NLIExcelImport {
                 io.setImportReturnValue(ImportReturnValue.InvalidData);
                 return io;
             }
+
+            if (this.pluginConfig.shouldVerifyMediaFiles()) {
+                verifyMediaFiles(hff, tempObject);
+            }
+
             String processNameCleaned = processName.replaceAll(ConfigurationHelper.getInstance().getProcessTitleReplacementRegex(),
                     this.pluginConfig.getIllegalCharacterReplacement());
 
@@ -195,6 +202,30 @@ public class NLIExcelImport {
         }
 
         return io;
+    }
+
+    /**
+     * Throws an {@link ImportException} if the import folder determined by hff and dataObject contains both jpeg and tiff images but a different
+     * number of each
+     * 
+     * @param hff the hotfolder-folder
+     * @param dataObject the import data object
+     * @throws ImportException if verification fails
+     */
+    private void verifyMediaFiles(HotfolderFolder hff, IRecordDataObject dataObject) throws ImportException {
+        Path imageSourceFolder = getImageFolderPath(hff, dataObject);
+
+        if (storageProvider.isFileExists(imageSourceFolder) && storageProvider.isDirectory(imageSourceFolder)) {
+            List<Path> dataInSourceImageFolder = storageProvider.listFiles(imageSourceFolder.toString());
+            Map<String, List<Path>> filesByMimetype =
+                    dataInSourceImageFolder.stream().collect(Collectors.groupingBy(NIOFileUtils::getMimeTypeFromFile));
+            int numJpegs = filesByMimetype.getOrDefault("image/jpeg", Collections.emptyList()).size();
+            int numTiffs = filesByMimetype.getOrDefault("image/tiff", Collections.emptyList()).size();
+            if (numJpegs > 0 && numTiffs > 0 && numJpegs != numTiffs) {
+                throw new ImportException(
+                        "Cannot import folder " + imageSourceFolder + ": It contains " + numJpegs + " Jpeg files but " + numTiffs + " Tiff files");
+            }
+        }
     }
 
     public void deleteSourceFiles(HotfolderFolder hff, HotfolderRecord record) {
