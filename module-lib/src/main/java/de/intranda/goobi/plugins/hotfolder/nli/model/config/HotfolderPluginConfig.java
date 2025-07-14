@@ -80,4 +80,8 @@ public class HotfolderPluginConfig {
         return baseConfig.getString("illegalCharacerReplacement", "");
     }
 
+    public boolean shouldVerifyMediaFiles() {
+        return baseConfig.getBoolean("verifyMediaFiles", true);
+    }
+
 }
