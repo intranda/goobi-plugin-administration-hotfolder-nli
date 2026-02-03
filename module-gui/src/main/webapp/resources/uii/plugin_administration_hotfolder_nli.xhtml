@@ -7,7 +7,8 @@
     xmlns:jsf="http://xmlns.jcp.org/jsf"
     xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
     xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
-    xmlns:p="http://primefaces.org/ui">
+    xmlns:p="http://primefaces.org/ui"
+    xmlns:util="http://goobi.io/util">
 
     <composite:interface>
     </composite:interface>
@@ -29,7 +30,7 @@
                         <div class="row">
 
                             <!-- BOX ON THE LEFT WITH STATUS -->
-                            <div class="col-2">
+                            <div class="col-12 col-lg-3 mb-3 mb-lg-0">
                                 <intranda:box
                                     boxType="action"
                                     boxTitle="false"
@@ -37,27 +38,27 @@
 
                                     <intranda:boxTitle
                                         title="#{msgs[AdministrationForm.administrationPlugin.title]}"
-                                        icon="fa-plug">
+                                        icon="plug">
 
                                         <div class="actions d-flex">
                                             <button
                                                 jsf:rendered="#{AdministrationForm.administrationPlugin.paused}"
                                                 jsf:id="buttonLeft1"
-                                                class="btn d-flex align-items-center btn--title-action"
+                                                class="btn btn-icon d-flex align-items-center justify-content-center btn--title-action"
                                                 jsf:rel="tooltip"
                                                 jsf:action="#{AdministrationForm.administrationPlugin.resumeWork}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_resumework}">
-                                                <i class="fa fa-pause"></i>
+                                                <util:icon icon="player-pause" />
                                             </button>
 
                                             <button
                                                 jsf:rendered="#{not AdministrationForm.administrationPlugin.paused}"
                                                 jsf:id="buttonLeft2"
-                                                class="btn d-flex align-items-center btn--title-action"
+                                                class="btn btn-icon d-flex align-items-center justify-content-center btn--title-action"
                                                 jsf:rel="tooltip"
                                                 jsf:action="#{AdministrationForm.administrationPlugin.pauseWork}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_pausework}">
-                                                <i class="fa fa-play"></i>
+                                                <util:icon icon="player-play" />
                                             </button>
 
                                         </div>
@@ -92,9 +93,10 @@
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateCSV}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateCSV}" >
-                                                        <i class="fa fa-download"></i>
+                                                        class="btn-icon"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateCSV}"
+                                                        title="#{msgs.plugin_administration_nli_hotfolder_generateCSV}">
+                                                        <util:icon icon="download" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -105,9 +107,10 @@
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateQuartzErrorsLog}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateQuartzErrorsLog}" >
-                                                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                                                        class="btn-icon"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateQuartzErrorsLog}"
+                                                        title="#{msgs.plugin_administration_nli_hotfolder_generateQuartzErrorsLog}">
+                                                        <util:icon icon="alert-triangle" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -118,9 +121,10 @@
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.plugin_administration_nli_hotfolder_generateNoFilePeriodsLog}"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateNoFilePeriodsLog}" >
-                                                        <i class="fa fa-file-o" aria-hidden="true"></i>
+                                                        class="btn-icon"
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.generateNoFilePeriodsLog}"
+                                                        title="#{msgs.plugin_administration_nli_hotfolder_generateNoFilePeriodsLog}">
+                                                        <util:icon icon="file" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -131,10 +135,11 @@
                                                 </td>
                                                 <td>
                                                     <button
-                                                        value="#{msgs.plugin_administration_nli_hotfolder_resetQuartzJobLogRecords}"
+                                                        class="btn-icon"
                                                         onclick="if (! confirm('Really want to do that?')) return false"
-                                                        jsf:action="#{AdministrationForm.administrationPlugin.resetQuartzJobLogRecords}" >
-                                                        <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                        jsf:action="#{AdministrationForm.administrationPlugin.resetQuartzJobLogRecords}"
+                                                        title="#{msgs.plugin_administration_nli_hotfolder_resetQuartzJobLogRecords}">
+                                                        <util:icon icon="trash" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -174,7 +179,7 @@
                             <!-- // BOX ON THE LEFT WITH STATUS -->
 
                             <!-- BOX ON THE RIGHT WITH LOGS -->
-                            <div class="col-10" id="runInfoBox">
+                            <div class="col-12 col-lg-9" id="runInfoBox">
                                 <intranda:box
                                     boxType="neutral"
                                     boxTitle="false"
@@ -192,20 +197,20 @@
                                             <!-- BUTTON TO PREVIOUS LOG -->
                                             <button
                                                 jsf:id="previousLogButton"
-                                                class="btn d-flex align-items-center btn--title-action"
+                                                class="btn btn-icon d-flex align-items-center justify-content-center btn--title-action"
                                                 jsf:rel="tooltip"
                                                 jsf:action="#{AdministrationForm.administrationPlugin.previousLog}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_previousEntry}">
-                                                <i class="fa fa-angle-left"></i>
+                                                <util:icon icon="chevron-left" />
                                             </button>
                                             <!-- BUTTON TO NEXT LOG -->
                                             <button
                                                 jsf:id="nextLogButton"
-                                                class="btn d-flex align-items-center btn--title-action"
+                                                class="btn btn-icon d-flex align-items-center justify-content-center btn--title-action"
                                                 jsf:rel="tooltip"
                                                 jsf:action="#{AdministrationForm.administrationPlugin.nextLog}"
                                                 title="#{msgs.plugin_administration_nli_hotfolder_nextEntry}">
-                                                <i class="fa fa-angle-right"></i>
+                                                <util:icon icon="chevron-right" />
                                             </button>
 
                                         </div>
@@ -227,13 +232,9 @@
                                                 <!-- Template name / Hotfolder name and the button to show / hide logs from previous runs -->
                                                 <div>
                                                     <button
-                                                        class="btn ps-0 mb-2"
+                                                        class="btn btn-icon ps-0 mb-2"
                                                         jsf:action="#{AdministrationForm.administrationPlugin.toggleShowFolder(folder)}">
-                                                        <i class="btn btn-blank fa #{AdministrationForm.administrationPlugin.showFolders[folder] ? 'fa-angle-down' : 'fa-angle-right'}"></i>
-                                                        <span>
-                                                        <h:outputText value="#{folder}"/>
-                                                        </span>
-
+                                                        <util:icon-text icon="#{AdministrationForm.administrationPlugin.showFolders[folder] ? 'chevron-down' : 'chevron-right'}" text="#{folder}" />
                                                     </button>
                                                     <br/>
                                                 </div>
