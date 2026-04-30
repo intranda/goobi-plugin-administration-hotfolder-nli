@@ -216,7 +216,7 @@ public class NLIExcelImport {
         Path imageSourceFolder = getImageFolderPath(hff, dataObject);
 
         if (storageProvider.isFileExists(imageSourceFolder) && storageProvider.isDirectory(imageSourceFolder)) {
-            List<Path> dataInSourceImageFolder = storageProvider.listFiles(imageSourceFolder.toString());
+            List<Path> dataInSourceImageFolder = storageProvider.listFiles(imageSourceFolder.toString(), NIOFileUtils.imageNameFilter);
             Map<String, List<Path>> filesByMimetype =
                     dataInSourceImageFolder.stream().collect(Collectors.groupingBy(NIOFileUtils::getMimeTypeFromFile));
             int numJpegs = filesByMimetype.getOrDefault("image/jpeg", Collections.emptyList()).size();
