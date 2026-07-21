@@ -16,11 +16,7 @@
     <composite:implementation>
 
                 <!-- NOT ALLOWED -->
-                <ui:fragment rendered="#{!LoginForm.hasRole('Plugin_administration_hotfolder_nli')}">
-                    <h:outputText
-                        styleClass="alert alert-danger d-block"
-                        value="#{msgs.plugin_administration_missingPermission} Plugin_administration_hotfolder_nli"/>
-                </ui:fragment>
+                <util:missing-rights rights="Plugin_administration_hotfolder_nli" rendered="true" />
                 <!-- // NOT ALLOWED -->
 
 
@@ -218,10 +214,11 @@
 
                                     <div class="p-4">
 
-                                        <h:outputText
-                                            styleClass="alert alert-danger d-block"
+                                        <util:alert
+                                            type="danger"
+                                            styleClass="d-block"
                                             rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() lt 1}"
-                                            value="#{msgs.plugin_administration_nli_hotfolder_noLogEntriesAvailable}"/>
+                                            message="#{msgs.plugin_administration_nli_hotfolder_noLogEntriesAvailable}" />
 
                                         <ui:fragment rendered="#{AdministrationForm.administrationPlugin.lastRunInfo.keySet().size() gt 0}">
 
