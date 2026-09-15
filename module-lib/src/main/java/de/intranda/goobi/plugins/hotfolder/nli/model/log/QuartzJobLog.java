@@ -7,10 +7,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
@@ -19,11 +23,13 @@ import lombok.extern.log4j.Log4j2;
 public class QuartzJobLog {
     private static QuartzJobLog logInstance;
     private static final DateTimeFormatter formatter = GUIImportResult.getFormatter();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String NO_FILES_PERIOD_LOG_FILE = "noFilesPeriods.csv";
     private static final String QUARTZ_ERROR_LOG_FILE = "quartzErrorLog.csv";
+    private static final String QUARTZ_ERROR_LOG_JSON_FILE = "quartzErrorLog.json";
 
-    private Map<LocalDateTime, String> quartzErrorsMap;
+    private Map<LocalDateTime, QuartzErrorLogEntry> quartzErrorsMap;
     private Map<LocalDateTime, LocalDateTime> periodsMap;
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
@@ -31,12 +37,15 @@ public class QuartzJobLog {
     @Getter
     private Path errorsFilePath;
     @Getter
+    private Path errorsJsonFilePath;
+    @Getter
     private Path periodsFilePath;
 
     private QuartzJobLog(Path hotfolderPath) {
         log.debug("initializing logInstance");
         this.hotfolderPath = hotfolderPath;
         this.errorsFilePath = this.hotfolderPath.resolve(QUARTZ_ERROR_LOG_FILE);
+        this.errorsJsonFilePath = this.hotfolderPath.resolve(QUARTZ_ERROR_LOG_JSON_FILE);
         this.periodsFilePath = this.hotfolderPath.resolve(NO_FILES_PERIOD_LOG_FILE);
         initializeQuartzErrorsMap();
         initializePeriodsMap();
@@ -51,9 +60,17 @@ public class QuartzJobLog {
 
     /* methods for handling quartz errors */
 
-    public void addErrorEntry(String errorMessage) {
+    /**
+     * Record an error that occurred while running the quartz job.
+     *
+     * @param context a short description of what was being processed when the error occurred (e.g. the hotfolder subfolder or process), may be
+     *            null
+     * @param error the exception that occurred
+     */
+    public void addErrorEntry(String context, Throwable error) {
         LocalDateTime now = LocalDateTime.now();
-        quartzErrorsMap.put(now, errorMessage);
+        QuartzErrorLogEntry entry = new QuartzErrorLogEntry(now.format(formatter), String.valueOf(hotfolderPath), context, error);
+        quartzErrorsMap.put(now, entry);
     }
 
     public void generateQuartzErrorsLogFile() {
@@ -63,9 +80,9 @@ public class QuartzJobLog {
 
     private String generateQuartzErrorsContent() {
         StringBuilder sb = new StringBuilder("TIME,ERROR\n");
-        for (Entry<LocalDateTime, String> entry : quartzErrorsMap.entrySet()) {
+        for (Entry<LocalDateTime, QuartzErrorLogEntry> entry : quartzErrorsMap.entrySet()) {
             String time = entry.getKey().format(formatter);
-            String error = entry.getValue();
+            String error = entry.getValue().toCsvSummary();
             sb.append(time);
             sb.append(",");
             sb.append(error);
@@ -73,6 +90,24 @@ public class QuartzJobLog {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Generate the JSON log file containing the enriched error entries, including the hotfolder, the processing context and the full stack trace
+     * of every recorded error.
+     */
+    public void generateQuartzErrorsJsonLogFile() {
+        String content = generateQuartzErrorsJsonContent();
+        generateFile(errorsJsonFilePath, content);
+    }
+
+    private String generateQuartzErrorsJsonContent() {
+        try {
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(new ArrayList<>(quartzErrorsMap.values()));
+        } catch (JsonProcessingException e) {
+            log.error("Error trying to serialize the quartz errors log to JSON", e);
+            return "[]";
+        }
     }
 
     /* methods for handling no files periods */
@@ -131,7 +166,7 @@ public class QuartzJobLog {
             out.write(content.getBytes());
 
         } catch (IOException e) {
-            log.error("Error trying to save the file: {}", e);
+            log.error("Error trying to save the file {}", filePath, e);
         }
     }
 

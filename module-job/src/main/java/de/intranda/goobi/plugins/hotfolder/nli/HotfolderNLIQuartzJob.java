@@ -104,13 +104,13 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("Error running NLI hotfolder: {}", e);
-            // record the exception
-            quartzJobLog.addErrorEntry(e.getMessage());
+            log.error("Error running NLI hotfolder", e);
+            // record the exception, including its full stack trace
+            quartzJobLog.addErrorEntry("Hotfolder run for " + config.getHotfolderPath(), e);
         } catch (Throwable e) {
-            log.error("Unexpected error running NLI hotfolder: {}", e);
-            // record the unexpected error
-            quartzJobLog.addErrorEntry(e.getMessage());
+            log.error("Unexpected error running NLI hotfolder", e);
+            // record the unexpected error, including its full stack trace
+            quartzJobLog.addErrorEntry("Hotfolder run for " + config.getHotfolderPath(), e);
         } finally {
 
             if (guiResults.size() > 0) {
@@ -131,9 +131,9 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
                     storageProvider.deleteFile(lockFile);
                 }
             } catch (IOException e) {
-                log.error("Error deleting NLI hotfolder lock file: {}", e);
-                // record the IOException
-                quartzJobLog.addErrorEntry("Error deleting NLI hotfolder lock file: " + e.getMessage());
+                log.error("Error deleting NLI hotfolder lock file", e);
+                // record the IOException, including its full stack trace
+                quartzJobLog.addErrorEntry("Deleting lock file " + lockFile, e);
             }
         }
     }
@@ -142,14 +142,17 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         List<ImportObject> imports = new ArrayList<>();
         NLIHotfolderImport importer = new NLIHotfolderImport(config, this.storageProvider, ConfigurationHelper.getInstance().getTemporaryFolder(),
                 ConfigOpac.getInstance());
+        QuartzJobLog quartzJobLog = QuartzJobLog.getInstance(config.getHotfolderPath());
         for (HotfolderFolder hff : importFolders) {
 
             try {
                 imports.addAll(importer.createProcessesFromHotfolder(hff));
             } catch (NullPointerException | IllegalStateException e) {
-                log.error("NLI hotfolder - unexpected error " + e.toString() + " when processing import folder " + hff.getProjectFolder(), e);
+                log.error("NLI hotfolder - unexpected error when processing import folder " + hff.getProjectFolder(), e);
+                quartzJobLog.addErrorEntry(hff.toString(), e);
             } catch (ImportException e) {
-                log.error("NLI hotfolder - Error  when processing import folder " + hff.getProjectFolder() + ". Reason: " + e.toString());
+                log.error("NLI hotfolder - Error when processing import folder " + hff.getProjectFolder(), e);
+                quartzJobLog.addErrorEntry(hff.toString(), e);
             }
         }
 
@@ -169,7 +172,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
         try {
             reducedLastResult = getReducedPreviousRunInfos(resultsJsonPath, numberSetting);
         } catch (IOException e) {
-            log.error("Error trying to update the log file: {}", e);
+            log.error("Error trying to update the log file {}", resultsJsonPath, e);
             return;
         }
 
@@ -183,7 +186,7 @@ public class HotfolderNLIQuartzJob extends AbstractGoobiJob {
             // append old results
             out.write(reducedLastResult.getBytes());
         } catch (IOException e) {
-            log.error("Error trying to update the log file: {}", e);
+            log.error("Error trying to update the log file {}", resultsJsonPath, e);
         }
     }
 
