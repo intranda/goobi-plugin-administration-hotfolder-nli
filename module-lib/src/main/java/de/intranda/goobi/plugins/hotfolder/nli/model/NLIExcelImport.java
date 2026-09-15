@@ -278,7 +278,7 @@ public class NLIExcelImport {
         }
     }
 
-    public List<HotfolderRecord> generateRecordsFromFile(HotfolderFolder hff) throws IOException {
+    public List<HotfolderRecord> generateRecordsFromFile(HotfolderFolder hff) throws IOException, ImportException {
 
         List<HotfolderRecord> recordList = new ArrayList<>();
         Map<String, Integer> headerOrder = new HashMap<>();
@@ -299,6 +299,10 @@ public class NLIExcelImport {
             //  find the header row
             Row headerRow = null;
             while (rowCounter < rowHeader) {
+                if (!rowIterator.hasNext()) {
+                    throw new EmptyFolderImportException("Import file " + hff.getImportFile() + " has too few rows: expected to find the header "
+                            + "row at row " + rowHeader + ", but the sheet only has " + rowCounter + " row(s).");
+                }
                 headerRow = rowIterator.next();
                 rowCounter++;
             }
@@ -316,6 +320,11 @@ public class NLIExcelImport {
 
             // find out the first data row
             while (rowCounter < rowDataStart - 1) {
+                if (!rowIterator.hasNext()) {
+                    throw new EmptyFolderImportException(
+                            "Import file " + hff.getImportFile() + " has too few rows: expected data to start at row " + rowDataStart
+                                    + ", but the sheet only has " + rowCounter + " row(s).");
+                }
                 headerRow = rowIterator.next();
                 rowCounter++;
             }

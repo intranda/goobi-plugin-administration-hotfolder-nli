@@ -21,6 +21,7 @@ import org.junit.rules.TemporaryFolder;
 
 import de.intranda.goobi.plugins.hotfolder.nli.model.config.HotfolderPluginConfig;
 import de.intranda.goobi.plugins.hotfolder.nli.model.data.HotfolderRecord;
+import de.intranda.goobi.plugins.hotfolder.nli.model.exceptions.ImportException;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderFolder;
 import de.intranda.goobi.plugins.hotfolder.nli.model.hotfolder.HotfolderParser;
 import de.sub.goobi.helper.NIOFileUtils;
@@ -81,7 +82,7 @@ public class NLIHotfolderImportTest {
     }
 
     @Test
-    public void testImport() throws IOException {
+    public void testImport() throws IOException, ImportException {
         List<HotfolderFolder> hotfolders = new HotfolderParser(storageProvider).getImportFolders(hotfolderPath, config);
         HotfolderFolder hff = hotfolders.stream().filter(f -> f.getTemplateName().equals("Audio_and_Video")).findAny().orElse(null);
         assertNotNull(hff);
