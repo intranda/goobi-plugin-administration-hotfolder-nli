@@ -223,6 +223,8 @@ public class HotfolderNliAdministrationPlugin implements IAdministrationPlugin {
         QuartzJobLog logger = QuartzJobLog.getInstance(hotfolderPath);
         // generate the quartz error log file
         logger.generateQuartzErrorsLogFile();
+        //generate an additional json file with detailed logging
+        logger.generateQuartzErrorsJsonLogFile();
         // download the file
         downloadFile(logger.getErrorsFilePath());
     }
